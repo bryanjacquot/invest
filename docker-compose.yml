@@ -1,0 +1,41 @@
+version: '3.8'
+
+networks:
+  invest-net:
+    driver: bridge
+
+services:
+  invest-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: invest-api
+    restart: unless-stopped
+    ports:
+      - "3011:3011"
+    environment:
+      - PORT=3011
+      - DATABASE_URL=sqlite:////app/data/invest.db
+      - JWT_SECRET=${JWT_SECRET:-super-secret-default-investment-tracker-key-change-in-prod-2026}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-bGFyZ2Utc2VjdXJlLWtleS0zMi1ieXRlcy1mb3ItZmVybmV0ISE=}
+      - PLAID_CLIENT_ID=${PLAID_CLIENT_ID:-}
+      - PLAID_SECRET=${PLAID_SECRET:-}
+      - PLAID_ENV=${PLAID_ENV:-sandbox}
+      - BACKUP_DIR=/app/data/backups
+    volumes:
+      - /volume1/docker/invest/data:/app/data
+    networks:
+      - invest-net
+
+  invest-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: invest-frontend
+    restart: unless-stopped
+    ports:
+      - "3010:3010"
+    depends_on:
+      - invest-api
+    networks:
+      - invest-net
