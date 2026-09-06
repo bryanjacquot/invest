@@ -20,7 +20,6 @@ export function initSidebar() {
   });
 
   // "All Accounts" Filter Row
-  const allRow = document.querySelector('.filter-item-row[data-filter="all"]');
   const allCheckbox = document.getElementById('filter-all-checkbox');
 
   const navigatePerformance = () => {
@@ -42,31 +41,28 @@ export function initSidebar() {
     closeSidebarMobile();
   };
 
-  const handleAllClick = (e) => {
-    if (e.target !== allCheckbox && allCheckbox) {
+  const handleAllClick = () => {
+    if (allCheckbox) {
       allCheckbox.checked = true;
     }
+    document.querySelectorAll('.filter-cat-checkbox').forEach(cb => {
+      cb.checked = false;
+    });
     state.selectedCategories.clear();
     state.selectedAccountId = null;
     navigatePerformance();
   };
 
-  allRow?.addEventListener('click', (e) => {
-    if (e.target === allCheckbox) return;
-    handleAllClick(e);
-  });
   allCheckbox?.addEventListener('change', handleAllClick);
 
   // Category Checkboxes
   document.querySelectorAll('.filter-cat-checkbox').forEach(cb => {
     const handleCategoryToggle = () => {
       state.selectedAccountId = null;
-      const val = cb.value;
-      if (cb.checked) {
-        state.selectedCategories.add(val);
-      } else {
-        state.selectedCategories.delete(val);
-      }
+      const checkedBoxes = document.querySelectorAll('.filter-cat-checkbox:checked');
+      const selectedSet = new Set();
+      checkedBoxes.forEach(box => selectedSet.add(box.value));
+      state.selectedCategories = selectedSet;
 
       // If Real Estate is the only selected category, route to /real-estate
       if (state.selectedCategories.size === 1 && state.selectedCategories.has('Real Estate')) {
@@ -78,11 +74,6 @@ export function initSidebar() {
     };
 
     cb.addEventListener('change', handleCategoryToggle);
-    cb.closest('.filter-item-row')?.addEventListener('click', (e) => {
-      if (e.target === cb) return;
-      cb.checked = !cb.checked;
-      handleCategoryToggle();
-    });
   });
 
   // Add Account button
