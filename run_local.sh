@@ -16,8 +16,8 @@ echo "Starting Backend API on http://localhost:3011 ..."
 ./venv/bin/uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 3011 --reload &
 BACKEND_PID=$!
 
-echo "Starting Frontend Server on http://localhost:3010 ..."
-python3 -m http.server 3010 --directory frontend/src &
+echo "Starting Frontend SPA Server on http://localhost:3010 ..."
+python3 dev_server.py &
 FRONTEND_PID=$!
 
 echo ""

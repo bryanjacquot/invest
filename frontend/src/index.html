@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
   
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="styles.css?v=1.1">
+  <link rel="stylesheet" href="styles.css?v=2.1">
 </head>
 <body>
   <!-- Global App Container -->
@@ -30,7 +30,7 @@
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <div class="brand">
+        <div class="brand" id="brand-logo-btn" style="cursor: pointer;">
           <div class="brand-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 3v18h18" stroke-linecap="round"/>
@@ -68,13 +68,13 @@
             </svg>
           </button>
 
-          <div id="user-dropdown-menu" class="user-dropdown glass-card hidden">
+          <div id="user-dropdown" class="user-dropdown glass-card hidden">
             <div class="dropdown-user-info">
               <span class="subtext">Signed in as</span>
               <strong id="dropdown-username" class="dropdown-username-val">User</strong>
             </div>
             <div class="dropdown-divider"></div>
-            <button id="menu-btn-database" class="dropdown-item" type="button">
+            <button id="btn-open-settings" class="dropdown-item" type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                 <polyline points="17 21 17 13 7 13 7 21"/>
@@ -83,7 +83,7 @@
               <span>Database & Backup</span>
             </button>
             <div class="dropdown-divider"></div>
-            <button id="menu-btn-logout" class="dropdown-item dropdown-item-danger" type="button">
+            <button id="btn-logout" class="dropdown-item dropdown-item-danger" type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
               </svg>
@@ -101,7 +101,7 @@
         <div class="sidebar-inner">
           <!-- Section 0: Overview Menu Item -->
           <div class="sidebar-section sidebar-nav-section">
-            <button id="sidebar-nav-overview" class="sidebar-nav-item active" data-tab="overview" type="button" title="Portfolio Overview">
+            <button id="sidebar-nav-overview" class="sidebar-nav-item active" type="button" title="Portfolio Overview">
               <span class="nav-item-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -184,7 +184,7 @@
                 <span class="filter-count-badge" id="count-Real-Estate">0</span>
               </label>
 
-              <!-- Mortgages -->
+              <!-- Debt / Mortgages -->
               <label class="filter-item-row" data-filter="Debt">
                 <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Debt">
                 <span class="filter-item-info">
@@ -196,7 +196,7 @@
             </div>
           </div>
 
-          <!-- Section 2: Accounts -->
+          <!-- Section 2: Individual Accounts -->
           <div class="sidebar-section accounts-sidebar-section">
             <div class="section-title-row">
               <span class="sidebar-section-title">
@@ -224,388 +224,60 @@
       <!-- Sidebar Mobile Backdrop -->
       <div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
 
-      <!-- Main Content Area -->
+      <!-- Dynamic Main Content Area (Mounted by Router) -->
       <div class="content-wrapper">
-        <main class="main-content">
-
-          <!-- Account Sub-Navigation Tabs (Shown only on Account Filters pages) -->
-          <nav id="account-view-tabs" class="view-tabs hidden">
-            <button class="tab-btn active" data-tab="performance">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-              <span>Performance & Targets</span>
-            </button>
-            <button class="tab-btn" data-tab="holdings">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-              <span>Holdings & Allocation</span>
-            </button>
-          </nav>
-
-          <!-- TAB 0: Overview View -->
-          <section id="tab-overview" class="tab-content active">
-            <!-- Account Filter Panels KPI Grid (Matching Left Nav Filters) -->
-            <section class="kpi-grid">
-              <!-- 1. All Accounts (Blended) -->
-              <div class="kpi-card glass-card card-glow-primary">
-                <div class="kpi-header">
-                  <span class="kpi-label">All Accounts (Blended)</span>
-                  <span class="badge-icon-emoji">🌟</span>
-                </div>
-                <div class="kpi-value" id="kpi-all-accounts">$0.00</div>
-                <div class="kpi-footer">
-                  <span id="kpi-nw-1y" class="kpi-change positive">+0.0% (1Y)</span>
-                  <span class="kpi-subtext">Total Net Worth</span>
-                </div>
-              </div>
-
-              <!-- 2. Retirement -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">Retirement</span>
-                  <span class="badge-icon-emoji">🛡️</span>
-                </div>
-                <div class="kpi-value" id="kpi-retirement">$0.00</div>
-                <div class="kpi-footer">
-                  <span id="kpi-count-retirement" class="kpi-subtext">0 accounts</span>
-                </div>
-              </div>
-
-              <!-- 3. Taxable Brokerage -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">Taxable Brokerage</span>
-                  <span class="badge-icon-emoji">📈</span>
-                </div>
-                <div class="kpi-value" id="kpi-taxable-brokerage">$0.00</div>
-                <div class="kpi-footer">
-                  <span id="kpi-count-taxable-brokerage" class="kpi-subtext">0 accounts</span>
-                </div>
-              </div>
-
-              <!-- 4. IRAs -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">IRAs</span>
-                  <span class="badge-icon-emoji">🪙</span>
-                </div>
-                <div class="kpi-value" id="kpi-iras">$0.00</div>
-                <div class="kpi-footer">
-                  <span id="kpi-count-iras" class="kpi-subtext">0 accounts</span>
-                </div>
-              </div>
-
-              <!-- 5. Emergency Savings -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">Emergency Savings</span>
-                  <span class="badge-icon-emoji">🚨</span>
-                </div>
-                <div class="kpi-value" id="kpi-emergency-savings">$0.00</div>
-                <div class="kpi-footer">
-                  <span class="kpi-subtext">Liquid cash reserve</span>
-                </div>
-              </div>
-
-              <!-- 6. Real Estate -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">Real Estate</span>
-                  <span class="badge-icon-emoji">🏡</span>
-                </div>
-                <div class="kpi-value" id="kpi-real-estate">$0.00</div>
-                <div class="kpi-footer">
-                  <span id="kpi-re-equity" class="kpi-change neutral">Equity: $0.00</span>
-                </div>
-              </div>
-
-              <!-- 7. Mortgages -->
-              <div class="kpi-card glass-card">
-                <div class="kpi-header">
-                  <span class="kpi-label">Mortgages</span>
-                  <span class="badge-icon-emoji">💳</span>
-                </div>
-                <div class="kpi-value" id="kpi-mortgages">$0.00</div>
-                <div class="kpi-footer">
-                  <span class="kpi-subtext">Mortgages & loans</span>
-                </div>
-              </div>
-            </section>
-
-            <!-- Capital Structure Summary Card -->
-            <div class="overview-detail-section">
-              <div class="overview-detail-card glass-card">
-                <div class="overview-card-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                  <span>Portfolio Balance & Capital Structure</span>
-                </div>
-                <div class="overview-stats-list">
-                  <div class="overview-stat-row">
-                    <span class="overview-stat-label">
-                      <span class="legend-dot" style="background:#10b981;"></span>
-                      Total Gross Assets
-                    </span>
-                    <span id="overview-total-assets" class="overview-stat-val">$0.00</span>
-                  </div>
-                  <div class="overview-stat-row">
-                    <span class="overview-stat-label">
-                      <span class="legend-dot" style="background:#ef4444;"></span>
-                      Total Liabilities & Mortgages
-                    </span>
-                    <span id="overview-total-liabilities" class="overview-stat-val">$0.00</span>
-                  </div>
-                  <div class="overview-stat-row">
-                    <span class="overview-stat-label">
-                      <span class="legend-dot" style="background:#3b82f6;"></span>
-                      Equity-to-Asset Ratio
-                    </span>
-                    <span id="overview-equity-ratio" class="overview-stat-val">100.0%</span>
-                  </div>
-                  <div class="overview-stat-row">
-                    <span class="overview-stat-label">
-                      <span class="legend-dot" style="background:#f59e0b;"></span>
-                      Debt-to-Asset Ratio
-                    </span>
-                    <span id="overview-debt-ratio" class="overview-stat-val">0.0%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 1: Performance & Targets View -->
-          <section id="tab-performance" class="tab-content">
-            <!-- Controls Bar -->
-            <div class="view-header-bar glass-card">
-              <div class="timeframe-selector">
-                <span class="control-label">Horizon:</span>
-                <div class="btn-group">
-                  <button class="tf-btn" data-tf="1M">1M</button>
-                  <button class="tf-btn" data-tf="YTD">YTD</button>
-                  <button class="tf-btn active" data-tf="1Y">1Y</button>
-                  <button class="tf-btn" data-tf="3Y">3Y</button>
-                  <button class="tf-btn" data-tf="5Y">5Y</button>
-                  <button class="tf-btn" data-tf="Lifetime">Lifetime</button>
-                </div>
-              </div>
-
-              <div class="format-toggle">
-                <span class="control-label">Format:</span>
-                <div class="btn-group">
-                  <button id="toggle-view-chart" class="btn btn-sm btn-toggle active">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-                    Graph
-                  </button>
-                  <button id="toggle-view-table" class="btn btn-sm btn-toggle">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                    Table
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Performance Summary Card (Actual vs Target) -->
-            <div class="target-summary-card glass-card">
-              <div class="summary-metric">
-                <span class="label">Actual Return (<span class="current-tf-label">1Y</span>)</span>
-                <span id="metric-actual-return" class="val positive">+0.00%</span>
-                <span id="metric-actual-gain" class="subval">+$0.00</span>
-              </div>
-              <div class="summary-metric">
-                <span class="label">Target Benchmark</span>
-                <span id="metric-target-return" class="val neutral">+0.00%</span>
-                <span id="metric-target-gain" class="subval">$0.00</span>
-              </div>
-              <div class="summary-metric">
-                <span class="label">Target Variance</span>
-                <span id="metric-variance" class="val positive">+0.00%</span>
-                <span id="metric-variance-status" class="badge-pill green">Ahead of Target</span>
-              </div>
-              <div class="summary-metric">
-                <span class="label">Annualized Return</span>
-                <span id="metric-annualized" class="val neutral">0.00%</span>
-                <span class="subval">CAGR</span>
-              </div>
-            </div>
-
-            <!-- Chart Container -->
-            <div id="performance-chart-container" class="chart-wrapper glass-card">
-              <div class="chart-header">
-                <h3>Actual Return vs. Compounded Target Rate Growth</h3>
-                <div class="chart-legend">
-                  <span class="legend-item"><span class="legend-dot actual-dot"></span> Actual Return (%)</span>
-                  <span class="legend-item"><span class="legend-dot target-dot"></span> Target Return Curve (%)</span>
-                </div>
-              </div>
-              <div class="canvas-container">
-                <canvas id="performanceChart"></canvas>
-              </div>
-            </div>
-
-            <!-- Table Container -->
-            <div id="performance-table-container" class="table-wrapper glass-card hidden">
-              <div class="table-header">
-                <h3>Timeframe Performance Breakdown</h3>
-              </div>
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Timeframe</th>
-                      <th>Starting Balance</th>
-                      <th>Ending Balance</th>
-                      <th>Net Gain / Loss</th>
-                      <th>Actual Return (%)</th>
-                      <th>Target Rate (%)</th>
-                      <th>Target Ending ($)</th>
-                      <th>Variance ($)</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="performance-table-body">
-                    <!-- Dynamically populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Account Level Performance Breakdown -->
-            <div class="table-wrapper glass-card" style="margin-top: 1.5rem;">
-              <div class="table-header">
-                <h3>Account-by-Account Performance (<span class="current-tf-label">1Y</span>)</h3>
-              </div>
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Account Name</th>
-                      <th>Category</th>
-                      <th>Target Rate</th>
-                      <th>Starting Balance</th>
-                      <th>Ending Balance</th>
-                      <th>Gain / Loss ($)</th>
-                      <th>Actual Return (%)</th>
-                      <th>Target Return (%)</th>
-                      <th>Variance ($)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="account-performance-table-body">
-                    <!-- Dynamically populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 2: Holdings & Allocation View -->
-          <section id="tab-holdings" class="tab-content">
-            <div class="grid-2col">
-              <!-- Asset Allocation Donut Chart -->
-              <div class="glass-card">
-                <div class="chart-header">
-                  <h3>Asset Allocation & Exposure</h3>
-                  <div id="blended-risk-badge" class="badge-pill moderate">Moderate Risk (3.2)</div>
-                </div>
-                <div class="canvas-container-sm">
-                  <canvas id="allocationChart"></canvas>
-                </div>
-                <div id="allocation-legend-list" class="allocation-legend">
-                  <!-- Dynamically populated -->
-                </div>
-              </div>
-
-              <!-- Risk Breakdown by Account -->
-              <div class="glass-card">
-                <div class="chart-header">
-                  <h3>5-Tier Risk Profile Analysis</h3>
-                  <span class="subtext">Weighted by asset concentration</span>
-                </div>
-                <div id="account-risk-list" class="risk-list">
-                  <!-- Dynamically populated -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Granular Holdings Table -->
-            <div class="table-wrapper glass-card" style="margin-top: 1.5rem;">
-              <div class="table-header">
-                <h3>Consolidated Holdings & Securities</h3>
-                <input type="text" id="holding-search-input" class="form-input search-input" placeholder="Search by ticker or name...">
-              </div>
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Ticker</th>
-                      <th>Holding Name</th>
-                      <th>Account</th>
-                      <th>Asset Class</th>
-                      <th>Shares / Qty</th>
-                      <th>Price</th>
-                      <th>Market Value</th>
-                      <th>Cost Basis</th>
-                      <th>Unrealized Gain ($)</th>
-                      <th>Return (%)</th>
-                      <th>Portfolio %</th>
-                      <th>Risk Tier</th>
-                    </tr>
-                  </thead>
-                  <tbody id="holdings-table-body">
-                    <!-- Dynamically populated -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- TAB 3: Real Estate & Loans View -->
-          <section id="tab-realestate" class="tab-content">
-            <div class="section-actions-bar">
-              <div>
-                <h2>Real Estate Portfolio & Equity Tracking</h2>
-                <p class="subtext">Track property valuations, linked mortgages, and net property equity.</p>
-              </div>
-            </div>
-
-            <div id="real-estate-cards-container" class="cards-grid">
-              <!-- Property Equity Cards populated dynamically -->
-            </div>
-          </section>
-
+        <main id="view-container" class="main-content">
+          <div style="text-align: center; padding: 4rem 1rem;">
+            <h3>Loading InvestTracker...</h3>
+          </div>
         </main>
       </div>
     </div>
+
+    <!-- ========================================================================= -->
+    <!-- MODALS -->
+    <!-- ========================================================================= -->
 
     <!-- AUTH MODAL -->
     <div id="modal-auth" class="modal-backdrop hidden">
       <div class="modal-card glass-modal">
         <div class="modal-header">
-          <div class="brand-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-6 6"/></svg>
+          <div class="brand" style="margin-bottom: 0.5rem;">
+            <div class="brand-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18" stroke-linecap="round"/>
+                <path d="M18 9l-5 5-4-4-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="brand-title">INVEST<span class="highlight">TRACKER</span></span>
+            </div>
           </div>
           <h2 id="auth-modal-title">Sign In to InvestTracker</h2>
-          <p class="subtext">Access your self-hosted private portfolio</p>
+          <p class="subtext">Access your private self-hosted portfolio intelligence</p>
         </div>
+
+        <div id="auth-error-msg" class="badge-pill red hidden" style="margin-bottom: 1rem; width: 100%; text-align: center;"></div>
 
         <form id="form-auth" class="modal-form">
           <div class="form-group">
             <label for="auth-username">Username</label>
-            <input type="text" id="auth-username" class="form-input" placeholder="Enter your username" required autocomplete="username">
+            <input type="text" id="auth-username" class="form-input" placeholder="admin" required autocomplete="username">
           </div>
 
           <div class="form-group">
             <label for="auth-password">Password</label>
-            <input type="password" id="auth-password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+            <input type="password" id="auth-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
           </div>
 
-          <div id="auth-error-msg" class="error-banner hidden"></div>
-
           <div class="form-actions">
-            <button type="submit" id="btn-auth-submit" class="btn btn-primary btn-block btn-glow">Sign In</button>
+            <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-block btn-glow">Sign In</button>
           </div>
         </form>
 
         <div class="modal-footer">
-          <span id="auth-toggle-prompt">Don't have an account?</span>
-          <button type="button" id="btn-toggle-auth-mode" class="link-btn">Create Account</button>
+          <span id="auth-switch-prompt">Don't have an account?</span>
+          <button type="button" id="btn-toggle-auth-mode" class="link-btn">Create one</button>
         </div>
       </div>
     </div>
@@ -621,31 +293,31 @@
           <button type="button" class="btn-close modal-close-btn">&times;</button>
         </div>
 
-        <!-- 3-Mode Toggle Tabs -->
-        <div class="add-mode-toggle-group">
-          <button type="button" id="tab-btn-add-plaid" class="add-mode-btn active">
+        <!-- 3-Mode Sub-Navigation Tabs -->
+        <nav class="sub-nav-tabs glass-card" style="margin-bottom: 1rem;">
+          <button type="button" class="tab-btn active" data-tab="plaid">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             <span>Connect with Plaid</span>
           </button>
-          <button type="button" id="tab-btn-add-asset" class="add-mode-btn">
+          <button type="button" class="tab-btn" data-tab="asset">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             <span>Manual Asset</span>
           </button>
-          <button type="button" id="tab-btn-add-loan" class="add-mode-btn">
+          <button type="button" class="tab-btn" data-tab="loan">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             <span>Manual Loan</span>
           </button>
-        </div>
+        </nav>
 
-        <!-- TAB 1: Plaid Automated Connect -->
-        <div id="section-add-plaid" class="add-mode-section active">
+        <!-- TAB 1: Plaid Connect -->
+        <div id="add-tab-plaid" class="modal-tab-content active">
           <div class="glass-card" style="background: rgba(31, 41, 55, 0.4); text-align: center; padding: 2rem 1.5rem; margin-top: 0.5rem;">
             <div class="brand-icon" style="margin: 0 auto 1rem; width: 48px; height: 48px; font-size: 1.5rem;">🔗</div>
             <h3 style="font-size: 1.15rem; margin-bottom: 0.5rem;">Automated Brokerage & Bank Sync</h3>
             <p class="subtext" style="max-width: 440px; margin: 0 auto 1.5rem;">
               Securely connect your institutional investment accounts, 401(k) plans, IRAs, or checking & savings from Vanguard, Fidelity, Schwab, Chase, and 12,000+ financial institutions.
             </p>
-            <button type="button" id="btn-start-plaid-flow" class="btn btn-primary btn-glow btn-lg" style="margin: 0 auto;">
+            <button type="button" id="btn-connect-plaid-demo" class="btn btn-primary btn-glow btn-lg" style="margin: 0 auto;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               <span>Connect Bank / Brokerage with Plaid</span>
             </button>
@@ -653,27 +325,17 @@
         </div>
 
         <!-- TAB 2: Manual Asset Entry -->
-        <div id="section-add-asset" class="add-mode-section hidden">
-          <form id="form-add-asset" class="modal-form" style="margin-top: 0.5rem;">
+        <div id="add-tab-asset" class="modal-tab-content">
+          <form id="form-manual-asset" class="modal-form" style="margin-top: 0.5rem;">
             <div class="form-group">
-              <label for="asset-name">Asset Name</label>
-              <input type="text" id="asset-name" class="form-input" placeholder="e.g. Primary Residence, Schwab Roth IRA, Rental Property, Tesla Model Y" required>
+              <label for="manual-asset-name">Asset Name</label>
+              <input type="text" id="manual-asset-name" class="form-input" placeholder="e.g. Primary Residence, Schwab Roth IRA, Rental Property, Tesla Model Y" required>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="asset-type">Asset Type</label>
-                <select id="asset-type" class="form-input">
-                  <option value="real_estate">Real Estate / Property</option>
-                  <option value="investment">Custom Investment / Equity</option>
-                  <option value="depository">Cash Reserve / Savings</option>
-                  <option value="other">Vehicle / Physical Asset</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="asset-category">Category Group</label>
-                <select id="asset-category" class="form-input">
+                <label for="manual-asset-category">Category Group</label>
+                <select id="manual-asset-category" class="form-input">
                   <option value="Real Estate">Real Estate</option>
                   <option value="Retirement">Retirement</option>
                   <option value="Taxable Brokerage">Taxable Brokerage</option>
@@ -682,29 +344,28 @@
                   <option value="Other">Other Assets</option>
                 </select>
               </div>
+
+              <div class="form-group">
+                <label for="manual-asset-balance">Current Market Value ($)</label>
+                <input type="number" step="0.01" id="manual-asset-balance" class="form-input" placeholder="0.00" required>
+              </div>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="asset-balance">Current Market Value / Balance ($)</label>
-                <input type="number" step="0.01" id="asset-balance" class="form-input" placeholder="0.00" required>
+                <label for="manual-asset-target">Target Annual Return (%)</label>
+                <input type="number" step="0.1" id="manual-asset-target" class="form-input" value="4.0">
               </div>
 
               <div class="form-group">
-                <label for="asset-target-rate">Target Annual Return (%)</label>
-                <input type="number" step="0.1" id="asset-target-rate" class="form-input" value="4.0">
+                <label for="manual-asset-address">Property Address (Optional)</label>
+                <input type="text" id="manual-asset-address" class="form-input" placeholder="Street, City, State, ZIP">
               </div>
             </div>
 
-            <div id="asset-realestate-fields" class="extra-fields-group">
-              <div class="form-group">
-                <label for="asset-address">Property Address</label>
-                <input type="text" id="asset-address" class="form-input" placeholder="Street, City, State, ZIP">
-              </div>
-              <div class="form-group">
-                <label for="asset-purchase-price">Purchase Price ($)</label>
-                <input type="number" step="0.01" id="asset-purchase-price" class="form-input" placeholder="0.00">
-              </div>
+            <div class="form-group">
+              <label for="manual-asset-notes">Notes / Details (Optional)</label>
+              <input type="text" id="manual-asset-notes" class="form-input" placeholder="Purchase details, year built, etc.">
             </div>
 
             <div class="form-actions">
@@ -715,55 +376,44 @@
         </div>
 
         <!-- TAB 3: Manual Loan Entry -->
-        <div id="section-add-loan" class="add-mode-section hidden">
-          <form id="form-add-loan" class="modal-form" style="margin-top: 0.5rem;">
+        <div id="add-tab-loan" class="modal-tab-content">
+          <form id="form-manual-loan" class="modal-form" style="margin-top: 0.5rem;">
             <div class="form-group">
-              <label for="loan-name">Loan / Debt Name</label>
-              <input type="text" id="loan-name" class="form-input" placeholder="e.g. 30-Year Fixed Mortgage, Auto Loan, HELOC" required>
+              <label for="manual-loan-name">Loan / Mortgage Name</label>
+              <input type="text" id="manual-loan-name" class="form-input" placeholder="e.g. 30-Year Fixed Mortgage, Auto Loan, HELOC" required>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="loan-type">Loan Type</label>
-                <select id="loan-type" class="form-input">
-                  <option value="mortgage">Mortgage</option>
-                  <option value="auto_loan">Auto Loan</option>
-                  <option value="personal">Personal / Student Loan</option>
-                  <option value="other">Other Liability</option>
+                <label for="manual-loan-category">Category Group</label>
+                <select id="manual-loan-category" class="form-input">
+                  <option value="Debt">Mortgages & Debt</option>
                 </select>
               </div>
 
               <div class="form-group">
-                <label for="loan-balance">Current Loan Balance ($)</label>
-                <input type="number" step="0.01" id="loan-balance" class="form-input" placeholder="0.00" required>
+                <label for="manual-loan-balance">Current Loan Balance ($)</label>
+                <input type="number" step="0.01" id="manual-loan-balance" class="form-input" placeholder="0.00" required>
               </div>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="loan-interest-rate">Interest Rate (%)</label>
-                <input type="number" step="0.01" id="loan-interest-rate" class="form-input" placeholder="e.g. 3.75">
+                <label for="manual-loan-interest">Interest Rate (%)</label>
+                <input type="number" step="0.01" id="manual-loan-interest" class="form-input" placeholder="e.g. 3.75">
               </div>
 
               <div class="form-group">
-                <label for="loan-linked-asset">Link to Collateral Asset</label>
-                <select id="loan-linked-asset" class="form-input">
+                <label for="manual-loan-linked-asset">Link to Collateral Asset</label>
+                <select id="manual-loan-linked-asset" class="form-input">
                   <option value="">None (Unsecured / Standalone)</option>
-                  <!-- Injected dynamically -->
                 </select>
               </div>
             </div>
 
-            <div class="grid-2col">
-              <div class="form-group">
-                <label for="loan-original-amount">Original Loan Amount ($)</label>
-                <input type="number" step="0.01" id="loan-original-amount" class="form-input" placeholder="0.00">
-              </div>
-
-              <div class="form-group">
-                <label for="loan-monthly-payment">Monthly Payment ($)</label>
-                <input type="number" step="0.01" id="loan-monthly-payment" class="form-input" placeholder="0.00">
-              </div>
+            <div class="form-group">
+              <label for="manual-loan-payment">Monthly Payment ($)</label>
+              <input type="number" step="0.01" id="manual-loan-payment" class="form-input" placeholder="0.00">
             </div>
 
             <div class="form-actions">
@@ -772,29 +422,33 @@
             </div>
           </form>
         </div>
-
       </div>
     </div>
 
     <!-- LOG VALUATION / LOAN PAYMENT MODAL -->
-    <div id="modal-log-valuation" class="modal-backdrop hidden">
+    <div id="modal-valuation" class="modal-backdrop hidden">
       <div class="modal-card glass-modal">
         <div class="modal-header">
           <h2 id="valuation-modal-title">Log Valuation / Payment</h2>
           <button type="button" class="btn-close modal-close-btn">&times;</button>
         </div>
 
-        <form id="form-log-valuation" class="modal-form">
+        <form id="form-valuation" class="modal-form">
           <input type="hidden" id="valuation-account-id">
 
           <div class="form-group">
-            <label for="valuation-new-balance">New Valuation or Current Balance ($)</label>
-            <input type="number" step="0.01" id="valuation-new-balance" class="form-input" required>
+            <label for="valuation-amount">New Valuation or Current Balance ($)</label>
+            <input type="number" step="0.01" id="valuation-amount" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label for="valuation-date">Effective Date</label>
+            <input type="date" id="valuation-date" class="form-input">
           </div>
 
           <div class="form-group">
             <label for="valuation-note">Note / Appraisal Reference</label>
-            <input type="text" id="valuation-note" class="form-input" placeholder="e.g. Spring 2026 Home Appraisal">
+            <input type="text" id="valuation-note" class="form-input" placeholder="e.g. Spring 2026 Home Appraisal, Monthly Paydown">
           </div>
 
           <div class="form-actions">
@@ -805,59 +459,8 @@
       </div>
     </div>
 
-    <!-- EDIT ACCOUNT TARGET & CATEGORY MODAL -->
-    <div id="modal-edit-account" class="modal-backdrop hidden">
-      <div class="modal-card glass-modal">
-        <div class="modal-header">
-          <h2>Configure Account Settings</h2>
-          <button type="button" class="btn-close modal-close-btn">&times;</button>
-        </div>
-
-        <form id="form-edit-account" class="modal-form">
-          <input type="hidden" id="edit-account-id">
-
-          <div class="form-group">
-            <label for="edit-account-name">Account Name</label>
-            <input type="text" id="edit-account-name" class="form-input" required>
-          </div>
-
-          <div class="grid-2col">
-            <div class="form-group">
-              <label for="edit-account-category">Category Group</label>
-              <select id="edit-account-category" class="form-input">
-                <option value="Retirement">Retirement</option>
-                <option value="Taxable Brokerage">Taxable Brokerage</option>
-                <option value="IRAs">IRAs</option>
-                <option value="Emergency Savings">Emergency Savings</option>
-                <option value="Real Estate">Real Estate</option>
-                <option value="Debt">Mortgages</option>
-                <option value="Other">Other Assets</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-account-target">Target Annual Return (%)</label>
-              <input type="number" step="0.1" id="edit-account-target" class="form-input" required>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="edit-account-linked-asset">Linked Collateral Asset</label>
-            <select id="edit-account-linked-asset" class="form-input">
-              <option value="">None</option>
-            </select>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
-            <button type="submit" class="btn btn-primary btn-glow">Update Account</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
     <!-- DATABASE & BACKUP MODAL -->
-    <div id="modal-database-backup" class="modal-backdrop hidden">
+    <div id="modal-settings" class="modal-backdrop hidden">
       <div class="modal-card glass-modal" style="max-width: 600px;">
         <div class="modal-header">
           <div>
@@ -906,7 +509,7 @@
 
   </div>
 
-  <!-- App Script -->
-  <script src="app.js?v=1.1"></script>
+  <!-- App Modular ES6 Script -->
+  <script type="module" src="app.js?v=2.1"></script>
 </body>
 </html>
