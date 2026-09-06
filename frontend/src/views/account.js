@@ -83,9 +83,6 @@ export default {
         <div class="glass-card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
           <div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <button class="btn btn-sm btn-secondary" id="btn-back-accounts" title="Back to All Accounts">
-                ← All Accounts
-              </button>
               <h2 style="margin: 0;">${escapeHtml(account.name)}</h2>
               <span class="badge-pill moderate">${escapeHtml(account.category_group)}</span>
             </div>
@@ -195,10 +192,6 @@ export default {
   },
 
   bindDetailEvents(account) {
-    document.getElementById('btn-back-accounts')?.addEventListener('click', () => {
-      router.navigate('/performance');
-    });
-
     document.getElementById('btn-log-valuation')?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
         detail: {
