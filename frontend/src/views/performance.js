@@ -2,7 +2,7 @@
  * Performance & Analytics View Module (/performance)
  */
 import { apiFetch } from '../api.js';
-import { state } from '../state.js';
+import { state, setMetricUnit } from '../state.js';
 import { router } from '../router.js';
 import { formatCurrency, formatPercent, formatDate } from '../utils/formatters.js';
 import { escapeHtml } from '../utils/dom.js';
@@ -18,7 +18,10 @@ export default {
     this.params = params;
     const activeSubTab = params.get('tab') || 'performance';
     const activeTf = params.get('timeframe') || state.activeTimeframe || '1Y';
+    const activeUnit = params.get('unit') || state.metricUnit || 'pct'; // 'pct' or 'dollar'
     state.activeTimeframe = activeTf;
+    state.metricUnit = activeUnit;
+    setMetricUnit(activeUnit);
 
     // Sync categories/accounts into state
     const catParam = params.get('categories');
@@ -47,8 +50,9 @@ export default {
 
         <!-- SUBTAB 1: Performance & Targets -->
         <div id="subtab-content-performance" class="tab-content ${activeSubTab === 'performance' ? 'active' : ''}">
-          <!-- Controls Bar -->
+          <!-- Controls Bar (Horizon, Unit: % / $, Format: Chart / Table) -->
           <div class="view-header-bar glass-card">
+            <!-- 1. Horizon Selector -->
             <div class="timeframe-selector">
               <span class="control-label">Horizon:</span>
               <div class="btn-group" id="tf-btn-group">
@@ -61,6 +65,20 @@ export default {
               </div>
             </div>
 
+            <!-- 2. Unit Selector (% vs $) -->
+            <div class="unit-toggle-selector">
+              <span class="control-label">Metric:</span>
+              <div class="btn-group" id="unit-btn-group">
+                <button class="tf-btn ${activeUnit === 'pct' ? 'active' : ''}" data-unit="pct" title="Percentage Return (%)">
+                  % Percent
+                </button>
+                <button class="tf-btn ${activeUnit === 'dollar' ? 'active' : ''}" data-unit="dollar" title="Dollar Value Growth ($)">
+                  $ Dollars
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. View Format Selector (Chart vs Table) -->
             <div class="view-toggle-selector">
               <div class="btn-group">
                 <button id="toggle-view-chart" class="btn-toggle active" title="Chart View">
@@ -78,37 +96,37 @@ export default {
           <!-- Current TF Summary Cards (Horizontal 4-Column Grid in Single Glass Card) -->
           <div class="glass-card target-summary-card">
             <div class="summary-metric">
-              <span class="label">Actual Return (<span class="current-tf-label">${activeTf}</span>)</span>
+              <span class="label" id="metric-label-1">Actual Return (<span class="current-tf-label">${activeTf}</span>)</span>
               <span class="val positive" id="metric-actual-return">+0.00%</span>
               <span class="subval" id="metric-actual-gain">+$0.00</span>
             </div>
 
             <div class="summary-metric">
-              <span class="label">Target Return (<span class="current-tf-label">${activeTf}</span>)</span>
+              <span class="label" id="metric-label-2">Target Return (<span class="current-tf-label">${activeTf}</span>)</span>
               <span class="val" id="metric-target-return">+0.00%</span>
               <span class="subval" id="metric-target-gain">Target: $0.00</span>
             </div>
 
             <div class="summary-metric">
-              <span class="label">Variance vs Target</span>
+              <span class="label" id="metric-label-3">Variance vs Target</span>
               <span class="val positive" id="metric-variance">+0.00%</span>
               <span id="metric-variance-status" class="badge-pill green">Ahead of Target</span>
             </div>
 
             <div class="summary-metric">
-              <span class="label">Annualized Return</span>
+              <span class="label" id="metric-label-4">Annualized Return</span>
               <span class="val" id="metric-annualized">0.00%</span>
-              <span class="subval">Compounded APR</span>
+              <span class="subval" id="metric-sub-4">Compounded APR</span>
             </div>
           </div>
 
           <!-- Chart View -->
           <div id="performance-chart-container" class="glass-card chart-wrapper">
             <div class="chart-header">
-              <h3>Growth vs Target Annual Projection</h3>
+              <h3 id="chart-title">Growth vs Target Annual Projection</h3>
               <div class="chart-legend">
-                <span class="legend-item"><span class="legend-color-box actual"></span> Actual Portfolio</span>
-                <span class="legend-item"><span class="legend-color-box target"></span> Target Curve</span>
+                <span class="legend-item"><span class="legend-color-box actual"></span> <span id="legend-label-actual">Actual Portfolio</span></span>
+                <span class="legend-item"><span class="legend-color-box target"></span> <span id="legend-label-target">Target Curve</span></span>
               </div>
             </div>
             <div class="canvas-container" style="position: relative; height: 380px; width: 100%;">
@@ -236,6 +254,16 @@ export default {
       });
     });
 
+    // Unit toggle (% vs $)
+    document.querySelectorAll('#unit-btn-group button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const unit = btn.getAttribute('data-unit');
+        state.metricUnit = unit;
+        setMetricUnit(unit);
+        this.updateUrl({ unit });
+      });
+    });
+
     // View toggle (Chart vs Table)
     document.getElementById('toggle-view-chart')?.addEventListener('click', () => {
       document.getElementById('toggle-view-chart')?.classList.add('active');
@@ -259,6 +287,9 @@ export default {
 
   updateUrl(overrides = {}) {
     const currentParams = new URLSearchParams(window.location.search);
+    if (state.metricUnit && state.metricUnit !== 'pct' && !currentParams.has('unit')) {
+      currentParams.set('unit', state.metricUnit);
+    }
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === null || v === undefined) {
         currentParams.delete(k);
@@ -293,43 +324,77 @@ export default {
 
   async loadPerformanceMetrics() {
     try {
+      const isDollar = (this.params.get('unit') === 'dollar');
       const filterParam = this.getFilterParam();
       const data = await apiFetch(`/analytics/performance?timeframe=${state.activeTimeframe}&account_filter=${encodeURIComponent(filterParam)}`);
 
       const currMetric = data.timeframe_metrics[state.activeTimeframe] || {};
       document.querySelectorAll('.current-tf-label').forEach(el => el.textContent = state.activeTimeframe);
 
-      const retEl = document.getElementById('metric-actual-return');
       const retVal = currMetric.return_pct || 0;
-      if (retEl) {
-        retEl.textContent = `${retVal >= 0 ? '+' : ''}${retVal.toFixed(2)}%`;
-        retEl.className = `val ${retVal >= 0 ? 'positive' : 'negative'}`;
-      }
-
-      const gainEl = document.getElementById('metric-actual-gain');
       const gainVal = currMetric.capital_gain_loss || 0;
-      if (gainEl) {
-        gainEl.textContent = `${gainVal >= 0 ? '+' : ''}${formatCurrency(gainVal)}`;
+      const tgtRetVal = currMetric.target_return_pct || 0;
+      const tgtGainVal = (currMetric.target_end_balance || 0) - (currMetric.start_balance || 0);
+      const varPct = currMetric.variance_pct || 0;
+      const varDollars = currMetric.variance_dollars !== undefined ? currMetric.variance_dollars : (gainVal - tgtGainVal);
+      const startBalance = currMetric.start_balance || 0;
+      const endBalance = currMetric.end_balance || 0;
+      const annVal = currMetric.annualized_return_pct !== null && currMetric.annualized_return_pct !== undefined
+        ? `${currMetric.annualized_return_pct.toFixed(2)}%`
+        : '—';
+
+      // 1. Metric Card 1: Actual
+      const label1 = document.getElementById('metric-label-1');
+      const val1 = document.getElementById('metric-actual-return');
+      const sub1 = document.getElementById('metric-actual-gain');
+      if (isDollar) {
+        if (label1) label1.innerHTML = `Actual Gain (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val1) {
+          val1.textContent = `${gainVal >= 0 ? '+' : ''}${formatCurrency(gainVal)}`;
+          val1.className = `val ${gainVal >= 0 ? 'positive' : 'negative'}`;
+        }
+        if (sub1) sub1.textContent = `${retVal >= 0 ? '+' : ''}${retVal.toFixed(2)}% Return`;
+      } else {
+        if (label1) label1.innerHTML = `Actual Return (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val1) {
+          val1.textContent = `${retVal >= 0 ? '+' : ''}${retVal.toFixed(2)}%`;
+          val1.className = `val ${retVal >= 0 ? 'positive' : 'negative'}`;
+        }
+        if (sub1) sub1.textContent = `${gainVal >= 0 ? '+' : ''}${formatCurrency(gainVal)}`;
       }
 
-      const tgtRetEl = document.getElementById('metric-target-return');
-      if (tgtRetEl) {
-        tgtRetEl.textContent = `+${(currMetric.target_return_pct || 0).toFixed(2)}%`;
+      // 2. Metric Card 2: Target
+      const label2 = document.getElementById('metric-label-2');
+      const val2 = document.getElementById('metric-target-return');
+      const sub2 = document.getElementById('metric-target-gain');
+      if (isDollar) {
+        if (label2) label2.innerHTML = `Target Growth (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val2) val2.textContent = `+${formatCurrency(tgtGainVal)}`;
+        if (sub2) sub2.textContent = `+${tgtRetVal.toFixed(2)}% Target Rate`;
+      } else {
+        if (label2) label2.innerHTML = `Target Return (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val2) val2.textContent = `+${tgtRetVal.toFixed(2)}%`;
+        if (sub2) sub2.textContent = `Target: ${formatCurrency(tgtGainVal)}`;
       }
 
-      const tgtGainEl = document.getElementById('metric-target-gain');
-      if (tgtGainEl) {
-        tgtGainEl.textContent = formatCurrency((currMetric.target_end_balance || 0) - (currMetric.start_balance || 0));
-      }
-
-      const varEl = document.getElementById('metric-variance');
-      const varVal = currMetric.variance_pct || 0;
-      if (varEl) {
-        varEl.textContent = `${varVal >= 0 ? '+' : ''}${varVal.toFixed(2)}%`;
-        varEl.className = `val ${varVal >= 0 ? 'positive' : 'negative'}`;
-      }
-
+      // 3. Metric Card 3: Variance
+      const label3 = document.getElementById('metric-label-3');
+      const val3 = document.getElementById('metric-variance');
       const statusEl = document.getElementById('metric-variance-status');
+      if (isDollar) {
+        if (label3) label3.textContent = 'Variance vs Target ($)';
+        if (val3) {
+          val3.textContent = `${varDollars >= 0 ? '+' : ''}${formatCurrency(varDollars)}`;
+          val3.className = `val ${varDollars >= 0 ? 'positive' : 'negative'}`;
+        }
+      } else {
+        if (label3) label3.textContent = 'Variance vs Target (%)';
+        if (val3) {
+          val3.textContent = `${varPct >= 0 ? '+' : ''}${varPct.toFixed(2)}%`;
+          val3.className = `val ${varPct >= 0 ? 'positive' : 'negative'}`;
+        }
+      }
+
       if (statusEl) {
         if (currMetric.ahead_of_target) {
           statusEl.textContent = 'Ahead of Target';
@@ -340,22 +405,43 @@ export default {
         }
       }
 
-      const annEl = document.getElementById('metric-annualized');
-      if (annEl) {
-        annEl.textContent = currMetric.annualized_return_pct !== null && currMetric.annualized_return_pct !== undefined
-          ? `${currMetric.annualized_return_pct.toFixed(2)}%`
-          : '—';
+      // 4. Metric Card 4: Annualized / Balance
+      const label4 = document.getElementById('metric-label-4');
+      const val4 = document.getElementById('metric-annualized');
+      const sub4 = document.getElementById('metric-sub-4');
+      if (isDollar) {
+        if (label4) label4.textContent = 'Ending Portfolio Balance';
+        if (val4) val4.textContent = formatCurrency(endBalance);
+        if (sub4) sub4.textContent = `Start Balance: ${formatCurrency(startBalance)}`;
+      } else {
+        if (label4) label4.textContent = 'Annualized Return';
+        if (val4) val4.textContent = annVal;
+        if (sub4) sub4.textContent = 'Compounded APR';
       }
 
-      this.renderPerformanceChart(data.chart_series);
-      this.renderPerformanceTable(data.timeframe_metrics);
-      this.renderAccountBreakdownTable(data.account_breakdown);
+      // Chart Legend Labels and Header Title
+      const chartTitle = document.getElementById('chart-title');
+      const legendActual = document.getElementById('legend-label-actual');
+      const legendTarget = document.getElementById('legend-label-target');
+      if (isDollar) {
+        if (chartTitle) chartTitle.textContent = 'Portfolio Balance vs Target Projection ($)';
+        if (legendActual) legendActual.textContent = 'Actual Portfolio Balance ($)';
+        if (legendTarget) legendTarget.textContent = 'Target Projection ($)';
+      } else {
+        if (chartTitle) chartTitle.textContent = 'Growth vs Target Annual Projection (%)';
+        if (legendActual) legendActual.textContent = 'Actual Return (%)';
+        if (legendTarget) legendTarget.textContent = 'Target Curve (%)';
+      }
+
+      this.renderPerformanceChart(data.chart_series, isDollar);
+      this.renderPerformanceTable(data.timeframe_metrics, isDollar);
+      this.renderAccountBreakdownTable(data.account_breakdown, isDollar);
     } catch (err) {
       console.error('Error loading performance metrics:', err);
     }
   },
 
-  renderPerformanceChart(chartSeries) {
+  renderPerformanceChart(chartSeries, isDollar = false) {
     const canvas = document.getElementById('performanceChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -365,8 +451,15 @@ export default {
     }
 
     const labels = chartSeries.map(p => p.date);
-    const actualData = chartSeries.map(p => p.actual_return_pct);
-    const targetData = chartSeries.map(p => p.target_return_pct);
+    const actualData = isDollar
+      ? chartSeries.map(p => p.actual_balance)
+      : chartSeries.map(p => p.actual_return_pct);
+    const targetData = isDollar
+      ? chartSeries.map(p => p.target_balance)
+      : chartSeries.map(p => p.target_return_pct);
+
+    const actualLabel = isDollar ? 'Actual Balance ($)' : 'Actual Return (%)';
+    const targetLabel = isDollar ? 'Target Projection ($)' : 'Target Return Curve (%)';
 
     this.charts.performance = new Chart(ctx, {
       type: 'line',
@@ -374,7 +467,7 @@ export default {
         labels,
         datasets: [
           {
-            label: 'Actual Return (%)',
+            label: actualLabel,
             data: actualData,
             borderColor: '#3b82f6',
             backgroundColor: 'rgba(59, 130, 246, 0.08)',
@@ -385,7 +478,7 @@ export default {
             pointHoverRadius: 6
           },
           {
-            label: 'Target Return Curve (%)',
+            label: targetLabel,
             data: targetData,
             borderColor: '#8b5cf6',
             borderDash: [5, 5],
@@ -411,7 +504,13 @@ export default {
             borderWidth: 1,
             padding: 12,
             callbacks: {
-              label: (context) => `${context.dataset.label}: ${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(2)}%`
+              label: (context) => {
+                const val = context.parsed.y;
+                if (isDollar) {
+                  return `${context.dataset.label}: ${formatCurrency(val)}`;
+                }
+                return `${context.dataset.label}: ${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+              }
             }
           }
         },
@@ -425,7 +524,14 @@ export default {
             ticks: {
               color: '#9ca3af',
               font: { size: 11 },
-              callback: (v) => `${v >= 0 ? '+' : ''}${v}%`
+              callback: (v) => {
+                if (isDollar) {
+                  if (Math.abs(v) >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+                  if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(0)}k`;
+                  return `$${v}`;
+                }
+                return `${v >= 0 ? '+' : ''}${v}%`;
+              }
             }
           }
         }
@@ -433,7 +539,7 @@ export default {
     });
   },
 
-  renderPerformanceTable(timeframeMetrics) {
+  renderPerformanceTable(timeframeMetrics, isDollar = false) {
     const tbody = document.getElementById('performance-timeframe-tbody');
     if (!tbody) return;
 
@@ -465,7 +571,7 @@ export default {
     }).join('');
   },
 
-  renderAccountBreakdownTable(breakdown) {
+  renderAccountBreakdownTable(breakdown, isDollar = false) {
     const tbody = document.getElementById('account-breakdown-tbody');
     if (!tbody) return;
 

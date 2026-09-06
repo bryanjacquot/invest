@@ -12,6 +12,7 @@ export const state = {
   viewFormat: 'chart',
   isAuthRegisterMode: false,
   sidebarOpen: localStorage.getItem('invest_sidebar_open') !== 'false',
+  metricUnit: localStorage.getItem('invest_metric_unit') || 'pct',
   activeRoute: '/overview',
   subTab: 'performance',
   charts: {
@@ -55,4 +56,10 @@ export function setSidebarOpen(isOpen) {
   state.sidebarOpen = isOpen;
   localStorage.setItem('invest_sidebar_open', isOpen ? 'true' : 'false');
   notifyStateChange(['sidebarOpen']);
+}
+
+export function setMetricUnit(unit) {
+  state.metricUnit = unit;
+  localStorage.setItem('invest_metric_unit', unit);
+  notifyStateChange(['metricUnit']);
 }

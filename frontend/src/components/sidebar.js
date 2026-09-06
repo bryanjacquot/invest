@@ -23,14 +23,32 @@ export function initSidebar() {
   const allRow = document.querySelector('.filter-item-row[data-filter="all"]');
   const allCheckbox = document.getElementById('filter-all-checkbox');
 
+  const navigatePerformance = () => {
+    const params = new URLSearchParams();
+    if (state.selectedCategories && state.selectedCategories.size > 0) {
+      params.set('categories', Array.from(state.selectedCategories).join(','));
+    }
+    if (state.selectedAccountId) {
+      params.set('accounts', state.selectedAccountId);
+    }
+    if (state.metricUnit && state.metricUnit !== 'pct') {
+      params.set('unit', state.metricUnit);
+    }
+    if (state.activeTimeframe && state.activeTimeframe !== '1Y') {
+      params.set('timeframe', state.activeTimeframe);
+    }
+    const qs = params.toString();
+    router.navigate(`/performance${qs ? `?${qs}` : ''}`);
+    closeSidebarMobile();
+  };
+
   const handleAllClick = (e) => {
     if (e.target !== allCheckbox && allCheckbox) {
       allCheckbox.checked = true;
     }
     state.selectedCategories.clear();
     state.selectedAccountId = null;
-    router.navigate('/performance');
-    closeSidebarMobile();
+    navigatePerformance();
   };
 
   allRow?.addEventListener('click', (e) => {
@@ -53,13 +71,10 @@ export function initSidebar() {
       // If Real Estate is the only selected category, route to /real-estate
       if (state.selectedCategories.size === 1 && state.selectedCategories.has('Real Estate')) {
         router.navigate('/real-estate');
-      } else if (state.selectedCategories.size === 0) {
-        router.navigate('/performance');
+        closeSidebarMobile();
       } else {
-        const catQuery = Array.from(state.selectedCategories).join(',');
-        router.navigate(`/performance?categories=${encodeURIComponent(catQuery)}`);
+        navigatePerformance();
       }
-      closeSidebarMobile();
     };
 
     cb.addEventListener('change', handleCategoryToggle);

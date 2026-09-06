@@ -141,13 +141,21 @@ export default {
     `;
 
     // Attach card navigation handlers
-    document.getElementById('card-kpi-all')?.addEventListener('click', () => router.navigate('/performance'));
-    document.getElementById('card-kpi-ret')?.addEventListener('click', () => router.navigate('/performance?categories=Retirement'));
-    document.getElementById('card-kpi-tax')?.addEventListener('click', () => router.navigate('/performance?categories=Taxable%20Brokerage'));
-    document.getElementById('card-kpi-ira')?.addEventListener('click', () => router.navigate('/performance?categories=IRAs'));
-    document.getElementById('card-kpi-emg')?.addEventListener('click', () => router.navigate('/performance?categories=Emergency%20Savings'));
+    const navPerf = (category) => {
+      const params = new URLSearchParams();
+      if (category) params.set('categories', category);
+      if (state.metricUnit && state.metricUnit !== 'pct') params.set('unit', state.metricUnit);
+      const qs = params.toString();
+      router.navigate(`/performance${qs ? `?${qs}` : ''}`);
+    };
+
+    document.getElementById('card-kpi-all')?.addEventListener('click', () => navPerf());
+    document.getElementById('card-kpi-ret')?.addEventListener('click', () => navPerf('Retirement'));
+    document.getElementById('card-kpi-tax')?.addEventListener('click', () => navPerf('Taxable Brokerage'));
+    document.getElementById('card-kpi-ira')?.addEventListener('click', () => navPerf('IRAs'));
+    document.getElementById('card-kpi-emg')?.addEventListener('click', () => navPerf('Emergency Savings'));
     document.getElementById('card-kpi-re')?.addEventListener('click', () => router.navigate('/real-estate'));
-    document.getElementById('card-kpi-mort')?.addEventListener('click', () => router.navigate('/performance?categories=Debt'));
+    document.getElementById('card-kpi-mort')?.addEventListener('click', () => navPerf('Debt'));
 
     // Load metrics
     await this.loadMetrics();
