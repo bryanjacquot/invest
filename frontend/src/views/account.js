@@ -1,18 +1,24 @@
 /**
- * Account Detail & Settings View Module (/account?id=<uuid>)
+ * Account Detail & Performance View Module (/account?id=<uuid>)
  */
 import { apiFetch } from '../api.js';
-import { state } from '../state.js';
+import { state, setMetricUnit } from '../state.js';
 import { router } from '../router.js';
-import { formatCurrency, formatDate } from '../utils/formatters.js';
+import { formatCurrency, formatPercent, formatDate } from '../utils/formatters.js';
 import { escapeHtml } from '../utils/dom.js';
 
 export default {
   accountId: null,
   accountData: null,
-  chart: null,
+  params: null,
+  charts: {
+    performance: null,
+    allocation: null
+  },
+  allHoldings: [],
 
   async mount(container, params) {
+    this.params = params;
     this.accountId = params.get('id');
 
     if (!this.accountId) {
@@ -20,7 +26,7 @@ export default {
       return;
     }
 
-    await this.renderAccountDetail(container, this.accountId);
+    await this.renderAccountView(container, this.accountId);
   },
 
   renderAccountsDirectory(container) {
@@ -60,8 +66,17 @@ export default {
     `;
   },
 
-  async renderAccountDetail(container, accountId) {
-    const account = (state.accounts || []).find(a => a.id === accountId);
+  async renderAccountView(container, accountId) {
+    let account = (state.accounts || []).find(a => a.id === accountId);
+    if (!account) {
+      try {
+        const accs = await apiFetch('/accounts');
+        account = accs.find(a => a.id === accountId);
+      } catch (err) {
+        console.error('Failed to load account:', err);
+      }
+    }
+
     if (!account) {
       container.innerHTML = `
         <div class="glass-card" style="text-align: center; padding: 3rem;">
@@ -77,9 +92,18 @@ export default {
 
     this.accountData = account;
 
+    const activeSubTab = this.params.get('tab') || 'performance';
+    const activeTf = this.params.get('timeframe') || state.activeTimeframe || '1Y';
+    const activeUnit = this.params.get('unit') || state.metricUnit || 'pct';
+    state.activeTimeframe = activeTf;
+    state.metricUnit = activeUnit;
+    setMetricUnit(activeUnit);
+
+    const isLiability = account.account_class === 'liability';
+
     container.innerHTML = `
       <section class="account-detail-container">
-        <!-- Account Header Card -->
+        <!-- 1. Top Account Header Card -->
         <div class="glass-card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
           <div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -95,12 +119,18 @@ export default {
             </div>
           </div>
 
-          <div style="text-align: right;">
-            <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
-            <div style="font-size: 1.75rem; font-weight: 800; color: ${account.account_class === 'liability' ? 'var(--accent-red)' : 'var(--accent-green)'};">
-              ${formatCurrency(account.current_balance)}
+          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+            <div>
+              <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
+              <div style="font-size: 1.75rem; font-weight: 800; color: ${isLiability ? 'var(--accent-red)' : 'var(--accent-green)'};">
+                ${formatCurrency(account.current_balance)}
+              </div>
             </div>
-            <div style="margin-top: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+              <button class="btn btn-sm btn-secondary" id="btn-edit-account" title="Edit account settings and specifications">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit Account
+              </button>
               <button class="btn btn-sm btn-primary" id="btn-log-valuation">
                 + Log Valuation / Payment
               </button>
@@ -108,80 +138,170 @@ export default {
           </div>
         </div>
 
-        <!-- Account Configuration & Target Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-          <!-- Target & Category Settings Card -->
-          <div class="glass-card" style="padding: 1.5rem;">
-            <h3>Target Return & Category Settings</h3>
-            <form id="form-account-settings" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
-              <div class="form-group">
-                <label class="form-label">Account Name</label>
-                <input type="text" id="acc-edit-name" class="form-input" value="${escapeHtml(account.name)}" required>
+        <!-- 2. Body matching /performance view -->
+        <div class="performance-view-container" style="margin-top: 1.5rem;">
+          <!-- Sub-navigation tabs -->
+          <nav class="view-tabs" id="account-sub-tabs">
+            <button class="tab-btn ${activeSubTab === 'performance' ? 'active' : ''}" data-subtab="performance">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>Performance & Targets</span>
+            </button>
+            <button class="tab-btn ${activeSubTab === 'holdings' ? 'active' : ''}" data-subtab="holdings">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+              <span>Holdings & Allocation</span>
+            </button>
+          </nav>
+
+          <!-- SUBTAB 1: Performance & Targets -->
+          <div id="subtab-content-performance" class="tab-content ${activeSubTab === 'performance' ? 'active' : ''}">
+            <!-- Controls Bar (Horizon, Unit: % / $, Format: Chart / Table) -->
+            <div class="view-header-bar glass-card">
+              <!-- 1. Horizon Selector -->
+              <div class="timeframe-selector">
+                <span class="control-label">Horizon:</span>
+                <div class="btn-group" id="account-tf-btn-group">
+                  <button class="tf-btn ${activeTf === '1M' ? 'active' : ''}" data-tf="1M">1M</button>
+                  <button class="tf-btn ${activeTf === 'YTD' ? 'active' : ''}" data-tf="YTD">YTD</button>
+                  <button class="tf-btn ${activeTf === '1Y' ? 'active' : ''}" data-tf="1Y">1Y</button>
+                  <button class="tf-btn ${activeTf === '3Y' ? 'active' : ''}" data-tf="3Y">3Y</button>
+                  <button class="tf-btn ${activeTf === '5Y' ? 'active' : ''}" data-tf="5Y">5Y</button>
+                  <button class="tf-btn ${activeTf === 'LIFETIME' ? 'active' : ''}" data-tf="LIFETIME">Lifetime</button>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Category Group</label>
-                <select id="acc-edit-category" class="form-select">
-                  <option value="Retirement" ${account.category_group === 'Retirement' ? 'selected' : ''}>🛡️ Retirement (401k, 403b)</option>
-                  <option value="Taxable Brokerage" ${account.category_group === 'Taxable Brokerage' ? 'selected' : ''}>📈 Taxable Brokerage</option>
-                  <option value="IRAs" ${account.category_group === 'IRAs' ? 'selected' : ''}>🪙 IRAs (Traditional, Roth)</option>
-                  <option value="Emergency Savings" ${account.category_group === 'Emergency Savings' ? 'selected' : ''}>🚨 Emergency Savings</option>
-                  <option value="Real Estate" ${account.category_group === 'Real Estate' ? 'selected' : ''}>🏡 Real Estate</option>
-                  <option value="Debt" ${account.category_group === 'Debt' || account.category_group === 'Mortgages' ? 'selected' : ''}>💳 Mortgages & Debt</option>
-                  <option value="Other" ${account.category_group === 'Other' ? 'selected' : ''}>📁 Other</option>
-                </select>
+              <!-- 2. Unit Selector (% vs $) -->
+              <div class="unit-toggle-selector">
+                <span class="control-label">Metric:</span>
+                <div class="btn-group" id="account-unit-btn-group">
+                  <button class="tf-btn ${activeUnit === 'pct' ? 'active' : ''}" data-unit="pct" title="Percentage Return (%)">
+                    % Percent
+                  </button>
+                  <button class="tf-btn ${activeUnit === 'dollar' ? 'active' : ''}" data-unit="dollar" title="Dollar Value Growth ($)">
+                    $ Dollars
+                  </button>
+                </div>
               </div>
 
-              <div class="form-group">
-                <label class="form-label">Target Annual Growth Rate (% APR)</label>
-                <input type="number" id="acc-edit-target" class="form-input" step="0.1" value="${account.target_annual_return_rate || 7.0}" required>
-                <span class="subtext">Used to project compounded target curves vs actual performance.</span>
+              <!-- 3. View Format Selector (Chart vs Table) -->
+              <div class="view-toggle-selector">
+                <div class="btn-group">
+                  <button id="toggle-view-chart" class="btn-toggle active" title="Chart View">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span>Chart</span>
+                  </button>
+                  <button id="toggle-view-table" class="btn-toggle" title="Table View">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                    <span>Table</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Current TF Summary Cards (Horizontal 4-Column Grid in Single Glass Card) -->
+            <div class="glass-card target-summary-card">
+              <div class="summary-metric">
+                <span class="label" id="metric-label-1">Actual Return (<span class="current-tf-label">${activeTf}</span>)</span>
+                <span class="val positive" id="metric-actual-return">+0.00%</span>
+                <span class="subval" id="metric-actual-gain">+$0.00</span>
               </div>
 
-              <div id="acc-save-success" class="badge-pill green hidden" style="text-align: center;">Settings Saved Successfully!</div>
+              <div class="summary-metric">
+                <span class="label" id="metric-label-2">Target Return (<span class="current-tf-label">${activeTf}</span>)</span>
+                <span class="val" id="metric-target-return">+0.00%</span>
+                <span class="subval" id="metric-target-gain">Target: $0.00</span>
+              </div>
 
-              <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Save Settings</button>
-            </form>
+              <div class="summary-metric">
+                <span class="label" id="metric-label-3">Variance vs Target</span>
+                <span class="val positive" id="metric-variance">+0.00%</span>
+                <span id="metric-variance-status" class="badge-pill green">Ahead of Target</span>
+              </div>
+
+              <div class="summary-metric">
+                <span class="label" id="metric-label-4">Annualized Return</span>
+                <span class="val" id="metric-annualized">0.00%</span>
+                <span class="subval" id="metric-sub-4">Compounded APR</span>
+              </div>
+            </div>
+
+            <!-- Chart View -->
+            <div id="performance-chart-container" class="glass-card chart-wrapper">
+              <div class="chart-header">
+                <h3 id="chart-title">Growth vs Target Annual Projection</h3>
+              </div>
+              <div class="canvas-container" style="position: relative; height: 380px; width: 100%;">
+                <canvas id="accountPerformanceChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Table View (Hidden by default) -->
+            <div id="performance-table-container" class="glass-card hidden" style="margin-top: 1.5rem; padding: 1.5rem;">
+              <h3>Timeframe Performance Matrix</h3>
+              <div class="table-responsive" style="margin-top: 1rem;">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time Horizon</th>
+                      <th>Start Balance</th>
+                      <th>End Balance</th>
+                      <th>Gain / Loss</th>
+                      <th>Actual Return</th>
+                      <th>Target Return</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="performance-timeframe-tbody">
+                    <tr><td colspan="7" class="text-center">Loading performance metrics...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <!-- Account Meta & Details -->
-          <div class="glass-card" style="padding: 1.5rem;">
-            <h3>Account Specifications</h3>
-            <div class="overview-stats-list" style="margin-top: 1rem;">
-              <div class="overview-stat-row">
-                <span class="overview-stat-label">Account ID</span>
-                <span class="overview-stat-val" style="font-family: monospace; font-size: 0.8rem;">${account.id}</span>
-              </div>
-              <div class="overview-stat-row">
-                <span class="overview-stat-label">Account Class</span>
-                <span class="overview-stat-val">${account.account_class.toUpperCase()}</span>
-              </div>
-              <div class="overview-stat-row">
-                <span class="overview-stat-label">Currency</span>
-                <span class="overview-stat-val">${account.currency}</span>
-              </div>
-              <div class="overview-stat-row">
-                <span class="overview-stat-label">Created Date</span>
-                <span class="overview-stat-val">${formatDate(account.created_at)}</span>
-              </div>
-              ${account.linked_asset_name ? `
-                <div class="overview-stat-row">
-                  <span class="overview-stat-label">Linked Collateral Asset</span>
-                  <span class="overview-stat-val" style="color: var(--accent-blue); font-weight: 600;">${escapeHtml(account.linked_asset_name)}</span>
+          <!-- SUBTAB 2: Holdings & Allocation -->
+          <div id="subtab-content-holdings" class="tab-content ${activeSubTab === 'holdings' ? 'active' : ''}">
+            <div class="holdings-layout-grid">
+              <!-- Asset Allocation Donut Chart -->
+              <div class="glass-card chart-card">
+                <div class="chart-header">
+                  <h3>Asset Allocation</h3>
+                  <div id="blended-risk-badge" class="badge-pill moderate">Moderate Risk (5.2)</div>
                 </div>
-              ` : ''}
-              ${account.manual_detail?.interest_rate ? `
-                <div class="overview-stat-row">
-                  <span class="overview-stat-label">Loan Interest Rate</span>
-                  <span class="overview-stat-val">${account.manual_detail.interest_rate}%</span>
+                <div class="canvas-container donut-canvas-container" style="position: relative; height: 260px;">
+                  <canvas id="accountAllocationChart"></canvas>
                 </div>
-              ` : ''}
-              ${account.manual_detail?.monthly_payment ? `
-                <div class="overview-stat-row">
-                  <span class="overview-stat-label">Monthly Payment</span>
-                  <span class="overview-stat-val">${formatCurrency(account.manual_detail.monthly_payment)}</span>
+                <div id="account-risks-container" class="account-risks-list" style="margin-top: 1.25rem;"></div>
+              </div>
+
+              <!-- Consolidated Holdings Table -->
+              <div class="glass-card table-card">
+                <div class="table-header-flex">
+                  <h3>Holdings</h3>
+                  <div class="search-input-wrapper">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="holding-search-input" placeholder="Search ticker or name..." class="search-input">
+                  </div>
                 </div>
-              ` : ''}
+
+                <div class="table-responsive" style="margin-top: 1rem; max-height: 520px; overflow-y: auto;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Asset</th>
+                        <th>Class</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Value</th>
+                        <th>Gain / Loss</th>
+                        <th>Return</th>
+                      </tr>
+                    </thead>
+                    <tbody id="holdings-tbody">
+                      <tr><td colspan="7" class="text-center">Loading holdings...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -189,9 +309,18 @@ export default {
     `;
 
     this.bindDetailEvents(account);
+    await this.loadData();
   },
 
   bindDetailEvents(account) {
+    // Edit Account button -> opens Edit Account modal
+    document.getElementById('btn-edit-account')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('invest:open-edit-account', {
+        detail: { accountId: account.id }
+      }));
+    });
+
+    // Log Valuation button -> opens Valuation modal
     document.getElementById('btn-log-valuation')?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
         detail: {
@@ -202,41 +331,454 @@ export default {
       }));
     });
 
-    // Form settings submit
-    document.getElementById('form-account-settings')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const newName = document.getElementById('acc-edit-name').value.trim();
-      const newCat = document.getElementById('acc-edit-category').value;
-      const newTarget = parseFloat(document.getElementById('acc-edit-target').value);
+    // Subtab buttons
+    document.querySelectorAll('#account-sub-tabs .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const subtab = btn.getAttribute('data-subtab');
+        this.updateUrl({ tab: subtab });
+      });
+    });
 
-      try {
-        await apiFetch(`/accounts/${account.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            name: newName,
-            category_group: newCat,
-            target_annual_return_rate: newTarget
-          })
-        });
+    // Timeframe selector
+    document.querySelectorAll('#account-tf-btn-group button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tf = btn.getAttribute('data-tf');
+        state.activeTimeframe = tf;
+        this.updateUrl({ timeframe: tf });
+      });
+    });
 
-        const successPill = document.getElementById('acc-save-success');
-        if (successPill) {
-          successPill.classList.remove('hidden');
-          setTimeout(() => successPill.classList.add('hidden'), 3000);
+    // Unit toggle (% vs $)
+    document.querySelectorAll('#account-unit-btn-group button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const unit = btn.getAttribute('data-unit');
+        state.metricUnit = unit;
+        setMetricUnit(unit);
+        this.updateUrl({ unit });
+      });
+    });
+
+    // View toggle (Chart vs Table)
+    document.getElementById('toggle-view-chart')?.addEventListener('click', () => {
+      document.getElementById('toggle-view-chart')?.classList.add('active');
+      document.getElementById('toggle-view-table')?.classList.remove('active');
+      document.getElementById('performance-chart-container')?.classList.remove('hidden');
+      document.getElementById('performance-table-container')?.classList.add('hidden');
+    });
+
+    document.getElementById('toggle-view-table')?.addEventListener('click', () => {
+      document.getElementById('toggle-view-table')?.classList.add('active');
+      document.getElementById('toggle-view-chart')?.classList.remove('active');
+      document.getElementById('performance-chart-container')?.classList.add('hidden');
+      document.getElementById('performance-table-container')?.classList.remove('hidden');
+    });
+
+    // Holdings search
+    document.getElementById('holding-search-input')?.addEventListener('input', (e) => {
+      this.filterHoldingsTable(e.target.value);
+    });
+  },
+
+  updateUrl(overrides = {}) {
+    const currentParams = new URLSearchParams(window.location.search);
+    if (!currentParams.has('id') && this.accountId) {
+      currentParams.set('id', this.accountId);
+    }
+    if (state.metricUnit && state.metricUnit !== 'pct' && !currentParams.has('unit')) {
+      currentParams.set('unit', state.metricUnit);
+    }
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === null || v === undefined) {
+        currentParams.delete(k);
+      } else {
+        currentParams.set(k, v);
+      }
+    });
+
+    const queryString = currentParams.toString();
+    const newUrl = `/account${queryString ? `?${queryString}` : ''}`;
+    router.navigate(newUrl);
+  },
+
+  async loadData() {
+    const activeSubTab = this.params.get('tab') || 'performance';
+    if (activeSubTab === 'performance') {
+      await this.loadPerformanceMetrics();
+    } else {
+      await this.loadHoldingsAndAllocation();
+    }
+  },
+
+  async loadPerformanceMetrics() {
+    try {
+      const isDollar = (this.params.get('unit') === 'dollar' || state.metricUnit === 'dollar');
+      const data = await apiFetch(`/analytics/performance?timeframe=${state.activeTimeframe}&account_filter=${encodeURIComponent(this.accountId)}`);
+
+      const currMetric = data.timeframe_metrics[state.activeTimeframe] || {};
+      document.querySelectorAll('.current-tf-label').forEach(el => el.textContent = state.activeTimeframe);
+
+      const retVal = currMetric.return_pct || 0;
+      const gainVal = currMetric.capital_gain_loss || 0;
+      const tgtRetVal = currMetric.target_return_pct || 0;
+      const tgtGainVal = (currMetric.target_end_balance || 0) - (currMetric.start_balance || 0);
+      const varPct = currMetric.variance_pct || 0;
+      const varDollars = currMetric.variance_dollars !== undefined ? currMetric.variance_dollars : (gainVal - tgtGainVal);
+      const startBalance = currMetric.start_balance || 0;
+      const endBalance = currMetric.end_balance || 0;
+      const annVal = currMetric.annualized_return_pct !== null && currMetric.annualized_return_pct !== undefined
+        ? `${currMetric.annualized_return_pct.toFixed(2)}%`
+        : '—';
+
+      // 1. Metric Card 1: Actual
+      const label1 = document.getElementById('metric-label-1');
+      const val1 = document.getElementById('metric-actual-return');
+      const sub1 = document.getElementById('metric-actual-gain');
+      if (isDollar) {
+        if (label1) label1.innerHTML = `Actual Gain (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val1) {
+          val1.textContent = `${gainVal >= 0 ? '+' : ''}${formatCurrency(gainVal)}`;
+          val1.className = `val ${gainVal >= 0 ? 'positive' : 'negative'}`;
         }
+        if (sub1) sub1.textContent = `${retVal >= 0 ? '+' : ''}${retVal.toFixed(2)}% Return`;
+      } else {
+        if (label1) label1.innerHTML = `Actual Return (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val1) {
+          val1.textContent = `${retVal >= 0 ? '+' : ''}${retVal.toFixed(2)}%`;
+          val1.className = `val ${retVal >= 0 ? 'positive' : 'negative'}`;
+        }
+        if (sub1) sub1.textContent = `${gainVal >= 0 ? '+' : ''}${formatCurrency(gainVal)}`;
+      }
 
-        // Refresh state accounts
-        window.dispatchEvent(new CustomEvent('invest:refresh-accounts'));
-      } catch (err) {
-        alert(`Failed to save account settings: ${err.message}`);
+      // 2. Metric Card 2: Target
+      const label2 = document.getElementById('metric-label-2');
+      const val2 = document.getElementById('metric-target-return');
+      const sub2 = document.getElementById('metric-target-gain');
+      if (isDollar) {
+        if (label2) label2.innerHTML = `Target Growth (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val2) val2.textContent = `+${formatCurrency(tgtGainVal)}`;
+        if (sub2) sub2.textContent = `+${tgtRetVal.toFixed(2)}% Target Rate`;
+      } else {
+        if (label2) label2.innerHTML = `Target Return (<span class="current-tf-label">${state.activeTimeframe}</span>)`;
+        if (val2) val2.textContent = `+${tgtRetVal.toFixed(2)}%`;
+        if (sub2) sub2.textContent = `Target: ${formatCurrency(tgtGainVal)}`;
+      }
+
+      // 3. Metric Card 3: Variance
+      const label3 = document.getElementById('metric-label-3');
+      const val3 = document.getElementById('metric-variance');
+      const statusEl = document.getElementById('metric-variance-status');
+      if (isDollar) {
+        if (label3) label3.textContent = 'Variance vs Target ($)';
+        if (val3) {
+          val3.textContent = `${varDollars >= 0 ? '+' : ''}${formatCurrency(varDollars)}`;
+          val3.className = `val ${varDollars >= 0 ? 'positive' : 'negative'}`;
+        }
+      } else {
+        if (label3) label3.textContent = 'Variance vs Target (%)';
+        if (val3) {
+          val3.textContent = `${varPct >= 0 ? '+' : ''}${varPct.toFixed(2)}%`;
+          val3.className = `val ${varPct >= 0 ? 'positive' : 'negative'}`;
+        }
+      }
+
+      if (statusEl) {
+        if (currMetric.ahead_of_target) {
+          statusEl.textContent = 'Ahead of Target';
+          statusEl.className = 'badge-pill green';
+        } else {
+          statusEl.textContent = 'Behind Target';
+          statusEl.className = 'badge-pill red';
+        }
+      }
+
+      // 4. Metric Card 4: Annualized / Balance
+      const label4 = document.getElementById('metric-label-4');
+      const val4 = document.getElementById('metric-annualized');
+      const sub4 = document.getElementById('metric-sub-4');
+      if (isDollar) {
+        if (label4) label4.textContent = 'Ending Balance';
+        if (val4) val4.textContent = formatCurrency(endBalance);
+        if (sub4) sub4.textContent = `Start Balance: ${formatCurrency(startBalance)}`;
+      } else {
+        if (label4) label4.textContent = 'Annualized Return';
+        if (val4) val4.textContent = annVal;
+        if (sub4) sub4.textContent = 'Compounded APR';
+      }
+
+      // Chart Header Title
+      const chartTitle = document.getElementById('chart-title');
+      if (chartTitle) {
+        chartTitle.textContent = isDollar
+          ? 'Account Balance vs Target Projection ($)'
+          : 'Growth vs Target Annual Projection (%)';
+      }
+
+      this.renderPerformanceChart(data.chart_series, isDollar);
+      this.renderPerformanceTable(data.timeframe_metrics, isDollar);
+    } catch (err) {
+      console.error('Error loading account performance metrics:', err);
+    }
+  },
+
+  renderPerformanceChart(chartSeries, isDollar = false) {
+    const canvas = document.getElementById('accountPerformanceChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (this.charts.performance) {
+      this.charts.performance.destroy();
+    }
+
+    const labels = chartSeries.map(p => p.date);
+    const actualData = isDollar
+      ? chartSeries.map(p => p.actual_balance)
+      : chartSeries.map(p => p.actual_return_pct);
+    const targetData = isDollar
+      ? chartSeries.map(p => p.target_balance)
+      : chartSeries.map(p => p.target_return_pct);
+
+    const actualLabel = isDollar ? 'Actual Balance ($)' : 'Actual Return (%)';
+    const targetLabel = isDollar ? 'Target Projection ($)' : 'Target Return Curve (%)';
+
+    this.charts.performance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: actualLabel,
+            data: actualData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            borderWidth: 2.8,
+            fill: true,
+            tension: 0.3,
+            pointRadius: chartSeries.length > 30 ? 0 : 3,
+            pointHoverRadius: 6
+          },
+          {
+            label: targetLabel,
+            data: targetData,
+            borderColor: '#ff9052',
+            borderDash: [5, 5],
+            borderWidth: 2.2,
+            fill: false,
+            tension: 0.1,
+            pointRadius: 0,
+            pointHoverRadius: 5
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111827',
+            titleColor: '#f9fafb',
+            bodyColor: '#e5e7eb',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            padding: 12,
+            boxWidth: 10,
+            boxHeight: 10,
+            boxPadding: 4,
+            usePointStyle: false,
+            callbacks: {
+              labelColor: (context) => {
+                const color = context.dataset.borderColor || '#3b82f6';
+                return {
+                  borderColor: color,
+                  backgroundColor: color,
+                  borderWidth: 0,
+                  borderRadius: 2
+                };
+              },
+              label: (context) => {
+                const val = context.parsed.y;
+                if (isDollar) {
+                  return ` ${context.dataset.label}: ${formatCurrency(val)}`;
+                }
+                return ` ${context.dataset.label}: ${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.04)' },
+            ticks: { color: '#9ca3af', font: { size: 11 }, maxTicksLimit: 8 }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.06)' },
+            ticks: {
+              color: '#9ca3af',
+              font: { size: 11 },
+              callback: (v) => {
+                if (isDollar) {
+                  if (Math.abs(v) >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+                  if (Math.abs(v) >= 1000) return `$${(v / 1000).toFixed(0)}k`;
+                  return `$${v}`;
+                }
+                return `${v >= 0 ? '+' : ''}${v}%`;
+              }
+            }
+          }
+        }
       }
     });
   },
 
+  renderPerformanceTable(timeframeMetrics, isDollar = false) {
+    const tbody = document.getElementById('performance-timeframe-tbody');
+    if (!tbody) return;
+
+    const tfList = ['1M', 'YTD', '1Y', '3Y', '5Y', 'LIFETIME'];
+    tbody.innerHTML = tfList.map(tf => {
+      const m = timeframeMetrics[tf] || {};
+      const gain = m.capital_gain_loss || 0;
+      const ret = m.return_pct || 0;
+      const tgt = m.target_return_pct || 0;
+      const isAhead = m.ahead_of_target;
+
+      return `
+        <tr>
+          <td><strong>${tf}</strong></td>
+          <td>${formatCurrency(m.start_balance)}</td>
+          <td>${formatCurrency(m.end_balance)}</td>
+          <td class="${gain >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+            ${gain >= 0 ? '+' : ''}${formatCurrency(gain)}
+          </td>
+          <td class="${ret >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
+            ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%
+          </td>
+          <td>+${tgt.toFixed(2)}%</td>
+          <td>
+            <span class="badge-pill ${isAhead ? 'green' : 'red'}">${isAhead ? 'Ahead' : 'Behind'}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  async loadHoldingsAndAllocation() {
+    try {
+      const [riskData, holdingsData] = await Promise.all([
+        apiFetch(`/analytics/risk-profile?account_filter=${encodeURIComponent(this.accountId)}`),
+        apiFetch(`/analytics/holdings?account_filter=${encodeURIComponent(this.accountId)}`)
+      ]);
+
+      const badge = document.getElementById('blended-risk-badge');
+      if (badge) {
+        badge.textContent = `${riskData.blended_risk_tier} Risk (${riskData.blended_risk_score.toFixed(1)})`;
+        badge.className = `badge-pill ${riskData.blended_risk_tier.toLowerCase().replace(' ', '-')}`;
+      }
+
+      this.renderAllocationChart(riskData.asset_allocation);
+      this.allHoldings = holdingsData;
+      this.renderHoldingsTable(holdingsData);
+    } catch (err) {
+      console.error('Error loading holdings and allocation:', err);
+    }
+  },
+
+  renderAllocationChart(allocation) {
+    const canvas = document.getElementById('accountAllocationChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (this.charts.allocation) {
+      this.charts.allocation.destroy();
+    }
+
+    const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#14b8a6', '#f59e0b', '#ef4444', '#ec4899'];
+    const labels = (allocation || []).map(a => a.category);
+    const data = (allocation || []).map(a => a.value);
+
+    this.charts.allocation = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{ data, backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, color: '#9ca3af', font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (context) => ` ${context.label}: ${formatCurrency(context.raw)}`
+            }
+          }
+        }
+      }
+    });
+  },
+
+  renderHoldingsTable(holdings) {
+    const tbody = document.getElementById('holdings-tbody');
+    if (!tbody) return;
+
+    if (!holdings || holdings.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;">No holdings found for this account.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = holdings.map(h => {
+      const gain = h.unrealized_gain_loss || 0;
+      const ret = h.unrealized_gain_loss_pct || 0;
+      const isPositive = gain >= 0;
+
+      return `
+        <tr>
+          <td>
+            <strong>${escapeHtml(h.ticker_symbol || h.security_name)}</strong>
+            <div style="font-size:0.75rem; color:var(--text-dim);">${escapeHtml(h.security_name || '')}</div>
+          </td>
+          <td><span class="badge-pill moderate">${escapeHtml(h.asset_class || h.asset_type || 'Equity')}</span></td>
+          <td>${h.quantity ? h.quantity.toLocaleString(undefined, { maximumFractionDigits: 3 }) : '—'}</td>
+          <td>${formatCurrency(h.unit_price)}</td>
+          <td><strong>${formatCurrency(h.institution_value)}</strong></td>
+          <td class="${isPositive ? 'kpi-change positive' : 'kpi-change negative'}">
+            ${isPositive ? '+' : ''}${formatCurrency(gain)}
+          </td>
+          <td class="${isPositive ? 'kpi-change positive' : 'kpi-change negative'}">
+            ${isPositive ? '+' : ''}${ret.toFixed(2)}%
+          </td>
+        </tr>
+      `;
+    }).join('');
+  },
+
+  filterHoldingsTable(query) {
+    if (!this.allHoldings) return;
+    const q = query.toLowerCase().trim();
+    if (!q) {
+      this.renderHoldingsTable(this.allHoldings);
+      return;
+    }
+
+    const filtered = this.allHoldings.filter(h =>
+      (h.ticker_symbol && h.ticker_symbol.toLowerCase().includes(q)) ||
+      (h.security_name && h.security_name.toLowerCase().includes(q)) ||
+      (h.asset_class && h.asset_class.toLowerCase().includes(q))
+    );
+
+    this.renderHoldingsTable(filtered);
+  },
+
   unmount() {
-    if (this.chart) {
-      this.chart.destroy();
-      this.chart = null;
+    if (this.charts.performance) {
+      this.charts.performance.destroy();
+      this.charts.performance = null;
+    }
+    if (this.charts.allocation) {
+      this.charts.allocation.destroy();
+      this.charts.allocation = null;
     }
   }
 };

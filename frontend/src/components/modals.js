@@ -3,6 +3,8 @@
  */
 import { state, setToken, setUser } from '../state.js';
 import { apiFetch } from '../api.js';
+import { formatCurrency, formatDate } from '../utils/formatters.js';
+import { escapeHtml } from '../utils/dom.js';
 
 export function initModals() {
   // Generic close buttons
@@ -16,6 +18,7 @@ export function initModals() {
   // Global custom events
   window.addEventListener('invest:show-auth-modal', () => showAuthModal());
   window.addEventListener('invest:open-add-account', (e) => openAddAccountModal(e.detail?.tab));
+  window.addEventListener('invest:open-edit-account', (e) => openEditAccountModal(e.detail?.accountId));
   window.addEventListener('invest:open-valuation-modal', (e) => {
     const { accountId, currentValue, title } = e.detail || {};
     openValuationModal(accountId, currentValue, title);
@@ -24,6 +27,7 @@ export function initModals() {
 
   setupAuthModal();
   setupAddAccountModal();
+  setupEditAccountModal();
   setupValuationModal();
   setupSettingsModal();
 }
@@ -311,6 +315,114 @@ function setupSettingsModal() {
       window.location.reload();
     } catch (err) {
       alert(`Restore failed: ${err.message}`);
+    }
+  });
+}
+
+// 5. Edit Account Modal
+export function openEditAccountModal(accountId) {
+  const account = (state.accounts || []).find(a => a.id === accountId);
+  if (!account) return;
+
+  const idInput = document.getElementById('edit-acc-id');
+  const nameInput = document.getElementById('edit-acc-name');
+  const catSelect = document.getElementById('edit-acc-category');
+  const targetInput = document.getElementById('edit-acc-target');
+  const specsList = document.getElementById('edit-acc-specs-list');
+  const errPill = document.getElementById('edit-acc-error');
+  const successPill = document.getElementById('edit-acc-success');
+
+  if (idInput) idInput.value = account.id;
+  if (nameInput) nameInput.value = account.name;
+  if (catSelect) catSelect.value = account.category_group || 'Other';
+  if (targetInput) targetInput.value = account.target_annual_return_rate || 7.0;
+  if (errPill) errPill.classList.add('hidden');
+  if (successPill) successPill.classList.add('hidden');
+
+  if (specsList) {
+    specsList.innerHTML = `
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Account ID</span>
+        <span class="overview-stat-val" style="font-family: monospace; font-size: 0.75rem;">${account.id}</span>
+      </div>
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Institution</span>
+        <span class="overview-stat-val">${escapeHtml(account.institution_name || 'Manual')}</span>
+      </div>
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Source / Subtype</span>
+        <span class="overview-stat-val">${escapeHtml(account.source_type.toUpperCase())} (${escapeHtml(account.subtype || account.type)})</span>
+      </div>
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Account Class</span>
+        <span class="overview-stat-val">${account.account_class.toUpperCase()}</span>
+      </div>
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Created Date</span>
+        <span class="overview-stat-val">${formatDate(account.created_at)}</span>
+      </div>
+      ${account.linked_asset_name ? `
+        <div class="overview-stat-row">
+          <span class="overview-stat-label">Linked Collateral Asset</span>
+          <span class="overview-stat-val" style="color: var(--accent-blue); font-weight: 600;">${escapeHtml(account.linked_asset_name)}</span>
+        </div>
+      ` : ''}
+      ${account.manual_detail?.interest_rate ? `
+        <div class="overview-stat-row">
+          <span class="overview-stat-label">Interest Rate</span>
+          <span class="overview-stat-val">${account.manual_detail.interest_rate}%</span>
+        </div>
+      ` : ''}
+      ${account.manual_detail?.monthly_payment ? `
+        <div class="overview-stat-row">
+          <span class="overview-stat-label">Monthly Payment</span>
+          <span class="overview-stat-val">${formatCurrency(account.manual_detail.monthly_payment)}</span>
+        </div>
+      ` : ''}
+    `;
+  }
+
+  document.getElementById('modal-edit-account')?.classList.remove('hidden');
+}
+
+function setupEditAccountModal() {
+  document.getElementById('form-edit-account')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const accountId = document.getElementById('edit-acc-id').value;
+    const name = document.getElementById('edit-acc-name').value.trim();
+    const categoryGroup = document.getElementById('edit-acc-category').value;
+    const targetRate = parseFloat(document.getElementById('edit-acc-target').value);
+
+    const errPill = document.getElementById('edit-acc-error');
+    const successPill = document.getElementById('edit-acc-success');
+    errPill?.classList.add('hidden');
+    successPill?.classList.add('hidden');
+
+    try {
+      await apiFetch(`/accounts/${accountId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name,
+          category_group: categoryGroup,
+          target_annual_return_rate: targetRate
+        })
+      });
+
+      if (successPill) {
+        successPill.classList.remove('hidden');
+      }
+
+      // Refresh data & UI
+      window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
+
+      setTimeout(() => {
+        document.getElementById('modal-edit-account')?.classList.add('hidden');
+      }, 700);
+    } catch (err) {
+      if (errPill) {
+        errPill.textContent = `Failed to update account: ${err.message}`;
+        errPill.classList.remove('hidden');
+      }
     }
   });
 }

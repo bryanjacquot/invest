@@ -507,6 +507,64 @@
       </div>
     </div>
 
+    <!-- EDIT ACCOUNT MODAL -->
+    <div id="modal-edit-account" class="modal-backdrop hidden">
+      <div class="modal-card glass-modal" style="max-width: 580px;">
+        <div class="modal-header">
+          <div>
+            <h2 id="edit-acc-modal-title">Edit Account Settings</h2>
+            <p class="subtext">Configure category, target return rate, and properties.</p>
+          </div>
+          <button type="button" class="btn-close modal-close-btn">&times;</button>
+        </div>
+
+        <form id="form-edit-account" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+          <input type="hidden" id="edit-acc-id">
+
+          <div class="form-group">
+            <label class="form-label" for="edit-acc-name">Account Name</label>
+            <input type="text" id="edit-acc-name" class="form-input" required>
+          </div>
+
+          <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="edit-acc-category">Category Group</label>
+              <select id="edit-acc-category" class="form-select">
+                <option value="Retirement">🛡️ Retirement (401k, 403b)</option>
+                <option value="Taxable Brokerage">📈 Taxable Brokerage</option>
+                <option value="IRAs">🪙 IRAs (Traditional, Roth)</option>
+                <option value="Emergency Savings">🚨 Emergency Savings</option>
+                <option value="Real Estate">🏡 Real Estate</option>
+                <option value="Debt">💳 Mortgages & Debt</option>
+                <option value="Other">📁 Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-acc-target">Target Rate (% APR)</label>
+              <input type="number" id="edit-acc-target" class="form-input" step="0.1" required>
+            </div>
+          </div>
+
+          <!-- Account Specifications Box -->
+          <div class="glass-card" style="padding: 1rem; background: rgba(31, 41, 55, 0.4); margin-top: 0.25rem;">
+            <h4 style="font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Specifications</h4>
+            <div class="overview-stats-list" id="edit-acc-specs-list" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <!-- Dynamic specifications rendered on open -->
+            </div>
+          </div>
+
+          <div id="edit-acc-error" class="badge-pill red hidden" style="text-align: center;"></div>
+          <div id="edit-acc-success" class="badge-pill green hidden" style="text-align: center;">Settings Saved Successfully!</div>
+
+          <div class="form-actions" style="margin-top: 0.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-glow" id="btn-save-edit-account">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 
   <!-- App Modular ES6 Script -->
