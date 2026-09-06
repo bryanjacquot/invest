@@ -214,6 +214,8 @@ class ChartPoint(BaseModel):
     actual_return_pct: float
     target_balance: float
     target_return_pct: float
+    category_balances: Optional[Dict[str, float]] = None
+    category_returns_pct: Optional[Dict[str, float]] = None
 
 
 class PerformanceResponse(BaseModel):

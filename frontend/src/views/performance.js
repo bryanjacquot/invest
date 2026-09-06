@@ -7,6 +7,29 @@ import { router } from '../router.js';
 import { formatCurrency, formatPercent, formatDate } from '../utils/formatters.js';
 import { escapeHtml } from '../utils/dom.js';
 
+const CATEGORY_COLORS = {
+  'Retirement': '#38bdf8',         // Sky Blue
+  'Taxable Brokerage': '#a855f7',  // Violet / Purple
+  'IRAs': '#fbbf24',               // Gold / Amber
+  'Emergency Savings': '#f43f5e',  // Coral / Rose
+  'Real Estate': '#06b6d4',        // Cyan
+  'Debt': '#ef4444',               // Red
+  'Mortgages': '#ef4444',          // Red
+  'Other': '#818cf8'               // Indigo
+};
+
+const FALLBACK_CATEGORY_COLORS = [
+  '#38bdf8', '#a855f7', '#fbbf24', '#f43f5e',
+  '#06b6d4', '#818cf8', '#a3e635', '#2dd4bf', '#d946ef'
+];
+
+function getCategoryColor(categoryName, index = 0) {
+  if (CATEGORY_COLORS[categoryName]) {
+    return CATEGORY_COLORS[categoryName];
+  }
+  return FALLBACK_CATEGORY_COLORS[index % FALLBACK_CATEGORY_COLORS.length];
+}
+
 export default {
   params: null,
   charts: {
@@ -124,10 +147,6 @@ export default {
           <div id="performance-chart-container" class="glass-card chart-wrapper">
             <div class="chart-header">
               <h3 id="chart-title">Growth vs Target Annual Projection</h3>
-              <div class="chart-legend">
-                <span class="legend-item"><span class="legend-color-box actual"></span> <span id="legend-label-actual">Actual Portfolio</span></span>
-                <span class="legend-item"><span class="legend-color-box target"></span> <span id="legend-label-target">Target Curve</span></span>
-              </div>
             </div>
             <div class="canvas-container" style="position: relative; height: 380px; width: 100%;">
               <canvas id="performanceChart"></canvas>
@@ -450,6 +469,25 @@ export default {
       this.charts.performance.destroy();
     }
 
+    const categoryNames = (chartSeries && chartSeries.length > 0 && chartSeries[0].category_balances)
+      ? Object.keys(chartSeries[0].category_balances)
+      : [];
+    const isMultiCategory = categoryNames.length > 1;
+
+    // Chart Header Title
+    const chartTitle = document.getElementById('chart-title');
+    if (chartTitle) {
+      if (isDollar) {
+        chartTitle.textContent = isMultiCategory
+          ? 'Category & Total Balances vs Target Projection ($)'
+          : 'Portfolio Balance vs Target Projection ($)';
+      } else {
+        chartTitle.textContent = isMultiCategory
+          ? 'Category & Total Growth vs Target Annual Projection (%)'
+          : 'Growth vs Target Annual Projection (%)';
+      }
+    }
+
     const labels = chartSeries.map(p => p.date);
     const actualData = isDollar
       ? chartSeries.map(p => p.actual_balance)
@@ -458,37 +496,66 @@ export default {
       ? chartSeries.map(p => p.target_balance)
       : chartSeries.map(p => p.target_return_pct);
 
-    const actualLabel = isDollar ? 'Actual Balance ($)' : 'Actual Return (%)';
-    const targetLabel = isDollar ? 'Target Projection ($)' : 'Target Return Curve (%)';
+    const datasets = [];
+
+    // 1. Total Line (always Green #10b981)
+    datasets.push({
+      label: isMultiCategory
+        ? (isDollar ? 'Total Balance ($)' : 'Total Return (%)')
+        : (isDollar ? 'Actual Balance ($)' : 'Actual Return (%)'),
+      data: actualData,
+      borderColor: '#10b981',
+      backgroundColor: isMultiCategory ? 'rgba(16, 185, 129, 0.03)' : 'rgba(16, 185, 129, 0.08)',
+      borderWidth: 3,
+      fill: !isMultiCategory,
+      tension: 0.3,
+      pointRadius: chartSeries.length > 30 ? 0 : 3,
+      pointHoverRadius: 6,
+      order: 1
+    });
+
+    // 2. Target Line (always Peach #ff9052)
+    datasets.push({
+      label: isDollar ? 'Target Projection ($)' : 'Target Return Curve (%)',
+      data: targetData,
+      borderColor: '#ff9052',
+      borderDash: [5, 5],
+      borderWidth: 2.5,
+      fill: false,
+      tension: 0.1,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      order: 2
+    });
+
+    // 3. Individual Category Lines (when All Accounts or multiple categories are active)
+    if (isMultiCategory) {
+      categoryNames.forEach((cat, idx) => {
+        const color = getCategoryColor(cat, idx);
+        const catData = isDollar
+          ? chartSeries.map(p => p.category_balances?.[cat] ?? 0)
+          : chartSeries.map(p => p.category_returns_pct?.[cat] ?? 0);
+
+        datasets.push({
+          label: cat,
+          data: catData,
+          borderColor: color,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3,
+          pointRadius: chartSeries.length > 30 ? 0 : 2,
+          pointHoverRadius: 5,
+          order: 3 + idx
+        });
+      });
+    }
 
     this.charts.performance = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
-        datasets: [
-          {
-            label: actualLabel,
-            data: actualData,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
-            borderWidth: 2.5,
-            fill: true,
-            tension: 0.3,
-            pointRadius: chartSeries.length > 30 ? 0 : 3,
-            pointHoverRadius: 6
-          },
-          {
-            label: targetLabel,
-            data: targetData,
-            borderColor: '#8b5cf6',
-            borderDash: [5, 5],
-            borderWidth: 2,
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0,
-            pointHoverRadius: 5
-          }
-        ]
+        datasets
       },
       options: {
         responsive: true,
@@ -503,13 +570,26 @@ export default {
             borderColor: 'rgba(255, 255, 255, 0.1)',
             borderWidth: 1,
             padding: 12,
+            boxWidth: 10,
+            boxHeight: 10,
+            boxPadding: 4,
+            usePointStyle: false,
             callbacks: {
+              labelColor: (context) => {
+                const color = context.dataset.borderColor || '#3b82f6';
+                return {
+                  borderColor: color,
+                  backgroundColor: color,
+                  borderWidth: 0,
+                  borderRadius: 2
+                };
+              },
               label: (context) => {
                 const val = context.parsed.y;
                 if (isDollar) {
-                  return `${context.dataset.label}: ${formatCurrency(val)}`;
+                  return ` ${context.dataset.label}: ${formatCurrency(val)}`;
                 }
-                return `${context.dataset.label}: ${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+                return ` ${context.dataset.label}: ${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
               }
             }
           }

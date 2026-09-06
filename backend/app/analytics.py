@@ -483,16 +483,45 @@ class AnalyticsEngine:
         )
         base_bal = max(start_bal, 1.0)
 
+        # Collect distinct categories and precompute start balances
+        category_map = {}
+        for a in accounts:
+            cat = a.category_group or "Other"
+            if cat not in category_map:
+                category_map[cat] = []
+            category_map[cat].append(a)
+
+        cat_start_bals = {}
+        for cat, cat_accs in category_map.items():
+            cat_start_bals[cat] = sum(
+                cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], start_date) * (-1.0 if a.account_class == "liability" else 1.0)
+                for a in cat_accs
+            )
+
         for i in range(num_steps + 1):
             curr_date = start_date + timedelta(days=i * step_days)
             if curr_date > end_date:
                 curr_date = end_date
 
-            # Actual portfolio balance on curr_date
-            actual_val = sum(
-                cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], curr_date) * (-1.0 if a.account_class == "liability" else 1.0)
-                for a in accounts
-            )
+            # Category balance & return on curr_date
+            cat_balances = {}
+            cat_returns = {}
+            actual_val = 0.0
+
+            for cat, cat_accs in category_map.items():
+                cat_val = sum(
+                    cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], curr_date) * (-1.0 if a.account_class == "liability" else 1.0)
+                    for a in cat_accs
+                )
+                actual_val += cat_val
+                cat_balances[cat] = round(cat_val, 2)
+                csb = cat_start_bals.get(cat, 0.0)
+                if csb > 0:
+                    cret = round(((cat_val - csb) / csb * 100.0), 2)
+                else:
+                    cret = 0.0
+                cat_returns[cat] = cret
+
             actual_ret = round(((actual_val - start_bal) / base_bal * 100.0), 2)
 
             # Target compounded curve
@@ -505,7 +534,9 @@ class AnalyticsEngine:
                 actual_balance=round(actual_val, 2),
                 actual_return_pct=actual_ret,
                 target_balance=round(target_val, 2),
-                target_return_pct=target_ret
+                target_return_pct=target_ret,
+                category_balances=cat_balances,
+                category_returns_pct=cat_returns
             ))
 
         return points
