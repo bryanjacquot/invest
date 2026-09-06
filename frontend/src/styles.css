@@ -1451,6 +1451,7 @@ body {
 }
 
 .sidebar-account-item:hover .account-pencil-btn,
+.sidebar-account-item.active .account-pencil-btn,
 .sidebar-account-item:focus-within .account-pencil-btn,
 .account-pencil-btn:focus {
   opacity: 1;

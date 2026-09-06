@@ -201,25 +201,20 @@ export function renderSidebarAccountsList() {
 
   container.innerHTML = state.accounts.map(a => {
     const isLiability = a.account_class === 'liability';
-    const badgeClass = isLiability ? 'red' : 'moderate';
 
     return `
       <div class="sidebar-account-item" data-account-id="${a.id}">
-        <div class="account-item-main" onclick="window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
-          <div class="account-item-info">
-            <div class="account-item-name">${escapeHtml(a.name)}</div>
-            <div class="account-item-meta">
-              <span>${escapeHtml(a.institution_name || 'Manual')}</span>
-              <span class="badge-pill ${badgeClass}">${escapeHtml(a.category_group)}</span>
-            </div>
-          </div>
-          <div class="account-item-balance ${isLiability ? 'kpi-change negative' : ''}">
+        <div class="account-item-left" onclick="window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
+          <div class="account-item-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name)}</div>
+        </div>
+        <div class="account-item-right">
+          <div class="account-item-bal ${isLiability ? 'kpi-change negative' : ''}">
             ${formatCurrency(a.current_balance)}
           </div>
+          <button class="account-pencil-btn" title="Edit account details" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
         </div>
-        <button class="btn-account-edit" title="Edit account details" onclick="event.stopPropagation(); window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        </button>
       </div>
     `;
   }).join('');
