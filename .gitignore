@@ -35,9 +35,17 @@ htmlcov/
 *.env.local
 
 # Database & Storage
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
 data/*.db
-data/*.sqlite
-data/*.sqlite3
+data/*.db-wal
+data/*.db-shm
+data/*.sqlite*
 data/backups/*
 !data/.gitkeep
 !data/backups/.gitkeep
