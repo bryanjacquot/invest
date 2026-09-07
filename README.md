@@ -16,15 +16,16 @@ A self-hosted personal finance intelligence system running in Docker containers 
 ## Features
 
 1. **Net Worth & Balance Sheet:** Real-time summary and multi-year historical tracking combining liquid investments, emergency reserves, real estate, and liabilities.
-2. **Multi-Timeframe Performance Analytics:** TWR return calculations for `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime` intervals in both interactive line chart and comparative table formats.
-3. **Multi-Account & Category Filtering:** Instant toggle filtering for *All Accounts (Blended)*, *Retirement*, *Taxable Brokerage*, *Emergency Savings*, *Real Estate*, *Debt & Loans*, or single accounts.
-4. **Target Return Rate Comparison:** Compares actual performance against compounded target annual rates per account with ahead/behind metrics.
-5. **Granular Holdings Breakdown:** Product and ticker-level analysis with cost basis, gains, share quantities, and portfolio weight %.
-6. **5-Tier Risk Profile Engine:** Evaluates asset allocation exposure and assigns risk scores (*Very Low, Low, Moderate, High, Very High*) across accounts and the blended portfolio.
-7. **Real Estate & Mortgage Equity:** Links mortgages to properties with automatic **Net Property Equity** and **Loan-to-Value (LTV)** tracking.
-8. **On-Demand Synchronization:** User-initiated sync updates; no automated background polling.
-9. **One-Click SQLite Backup & Restore:** Direct `.sqlite` snapshot download and verified restore.
-10. **Secure Authentication:** Username & salted password hashing using `bcrypt` and JWT session tokens.
+2. **Modular SPA Views:** Clean 3-view architecture with dedicated controllers for **Overview** (`/overview`), **Unified Account & Performance** (`/account` with legacy `/performance` alias), and **Real Estate & Loans** (`/real-estate`).
+3. **Flat Sidebar Navigation:** Clean account list with active selection highlighting (no checkboxes), supporting single-click navigation, multi-account selection (Meta/Ctrl + Click), and "🌟 All Accounts" blended portfolio view.
+4. **Multi-Timeframe Performance Analytics:** TWR return calculations for `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime` intervals with instant conversion between `%` return and `$` gain, plus dual interactive line chart and comparative table formats.
+5. **Target Return Rate Comparison:** Compares actual performance against compounded target annual rates per account with ahead/behind metrics and inline "Edit Account" configuration dialog.
+6. **Granular Holdings Breakdown:** Product and ticker-level analysis with cost basis, gains, share quantities, and portfolio weight %.
+7. **5-Tier Risk Profile Engine:** Evaluates asset allocation exposure and assigns risk scores (*Very Low, Low, Moderate, High, Very High*) across accounts and the blended portfolio with interactive donut chart.
+8. **Real Estate & Mortgage Equity:** Links mortgages to properties with automatic **Net Property Equity** and **Loan-to-Value (LTV)** tracking.
+9. **On-Demand Synchronization:** User-initiated sync updates; no automated background polling.
+10. **One-Click SQLite Backup & Restore:** Direct `.sqlite` snapshot download and verified restore.
+11. **Secure Authentication:** Username & salted password hashing using `bcrypt` and JWT session tokens.
 
 ---
 
@@ -45,9 +46,16 @@ docker compose up --build -d
 ```
 Access the application at [http://localhost:3010](http://localhost:3010).
 
-### 3. Run Backend Automated Tests
+### 3. Run Automated Tests
+
+#### Backend Test Suite (Pytest)
 ```bash
 ./venv/bin/pytest --cov=app --cov-report=term-missing backend/tests
+```
+
+#### Frontend End-to-End Test Suite (Playwright + TypeScript)
+```bash
+npx playwright test
 ```
 
 ---

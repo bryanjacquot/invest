@@ -70,13 +70,11 @@ flowchart TD
 1. **Frontend Container (`invest-frontend` — Port `3010`):**
    - Modern, responsive, dark-mode/glassmorphic single-page application.
    - Proxies `/api/*` requests internally to `http://invest-api:3011/api/*`.
-   - UI modules:
-     - Authentication (Sign In / Register)
-     - Net Worth & Performance Dashboard (Dual Chart & Table views)
-     - Account & Holding Breakdown (Plaid + Manual Assets)
-     - Real Estate & Loan Management (Property details, mortgage linking, equity cards)
-     - Manual Valuation Logger & Amortization Tracker
-     - Settings & Database Backup/Restore
+   - UI Views & Modules:
+     - **Overview Dashboard (`/overview`):** Net worth KPIs, category distribution cards, and 5-year timeline.
+     - **Unified Account & Performance (`/account`, `/performance`):** Single-account, multi-account, and blended portfolio performance, target curve comparison ($ and %), Chart/Table toggles, Holdings breakdown & asset allocation donut, and "Edit Account" configuration dialog.
+     - **Real Estate & Loans (`/real-estate`):** Property cards, linked mortgage equity calculations, and LTV gauges.
+     - **Modals:** Authentication, Unified Add Account, Edit Account settings, Valuation & Loan Payment loggers, Database Backup & Restore.
 
 2. **Backend API Container (`invest-api` — Port `3011`):**
    - High-performance **Python (FastAPI)** application.
@@ -171,9 +169,10 @@ sequenceDiagram
   - **Line Chart:** Normalized percentage return (%) and nominal dollar growth ($) across selected timeframe for individual accounts and portfolio blended.
   - **Table View:** Starting balance, net additions/withdrawals, ending balance, capital gain/loss ($), and return rate (%).
 
-### 4.4 Account Filtering & Multi-Select
-- Select all accounts (Portfolio Blended), a predefined group (e.g., "Retirement", "Taxable Brokerage", "Real Estate", "Emergency Savings"), or individual accounts.
-- Dynamic recalculation of the chart and table upon toggling filter selections.
+### 4.4 Account Filtering & Selection Highlights
+- **Flat Account List:** Clean sidebar presentation displaying each individual account along with its current balance and a top-level "🌟 All Accounts" row.
+- **Selection Highlighting:** Clean active highlight styling to differentiate selected vs. non-selected accounts without visual noise from checkboxes.
+- **Multi-Select Support:** Single click switches directly to the clicked account (`/account?id=...`); Meta / Ctrl / Shift + Click toggles multi-account selection (`/account?accounts=...`) to blend performance on-the-fly. Clicking "🌟 All Accounts" resets the selection and displays the full blended portfolio.
 
 ### 4.5 Target Return Rates vs. Actual Performance
 - Users can specify an **Annual Target Return Rate** (e.g., `7.5%` for equities, `4.0%` for real estate) per account.

@@ -54,13 +54,23 @@ invest/
 │       ├── test_analytics.py       # TWR, 1M/YTD/1Y/3Y/5Y/Lifetime filters, blended returns, target curves, 5-tier risk
 │       ├── test_plaid_service.py   # Mock Plaid sync, link token creation, token encryption/decryption
 │       └── test_seed.py            # Demo portfolio seeding and data integrity checks
+├── e2e/                            # Playwright TypeScript E2E test suite
+│   ├── fixtures/                   # Auth fixture and demo seeding
+│   ├── page-objects/               # Page objects (Sidebar, Overview, Account, Modals)
+│   └── tests/                      # Test suites (Auth, Nav, Overview, Account, Holdings, Modals)
 └── frontend/
     ├── Dockerfile                  # Nginx static server + reverse proxy to backend
     ├── nginx.conf                  # Nginx configuration (port 3010, proxies /api -> invest-api:3011)
     └── src/
-        ├── index.html              # Modern single-page app layout with glassmorphic cards and charts
-        ├── styles.css              # Bespoke dark-mode styling, glowing accents, responsive grid
-        └── app.js                  # Frontend state management, Chart.js integrations, API client, Plaid Link
+        ├── index.html              # App shell layout with glassmorphic cards and dynamic view container
+        ├── styles.css              # Master dark-mode styling, glowing accents, responsive grid
+        ├── app.js                  # Modular SPA entry point & global event orchestrator
+        ├── state.js                # Central reactive state store
+        ├── router.js               # Client-side router with instant route-changed dispatch
+        ├── api.js                  # Unified API fetch client with auth injection
+        ├── components/             # Reusable UI components (header, sidebar, modals)
+        ├── views/                  # Modular view controllers (/overview, /account, /real-estate)
+        └── utils/                  # Formatters & DOM helpers
 ```
 
 ---
@@ -101,22 +111,21 @@ invest/
 ### 3. Frontend Web Application (`frontend/`)
 - **Design System & Aesthetics:**
   - Modern dark-mode palette with glassmorphism cards, subtle neon teal/blue accents, clean typography (Inter / Outfit), crisp stat badges.
-  - Single-page architecture with dynamic tab views: **Dashboard / Net Worth**, **Performance & Target Comparison**, **Holdings & Allocation**, **Real Estate & Loans**, and **Settings & Backup**.
+  - Single-page architecture with dynamic modular views: **Overview Dashboard** (`/overview`), **Unified Account & Performance** (`/account` and legacy `/performance`), **Real Estate & Loans** (`/real-estate`), and **Modal Dialogs**.
 - **Interactive UI Capabilities:**
   - **Top Navigation & Auth Header:** User profile, sync status indicator, prominent **"⚡ Sync Now"** button, and Logout.
-  - **Multi-Account Filter Bar:** Instant toggle buttons for *All Accounts (Blended)*, *Retirement*, *Taxable Brokerage*, *Emergency Savings*, *Real Estate*, *Liabilities*, or individual accounts.
-  - **Account Categorization & Settings:** Allows the user to configure or re-assign any account's category group (e.g., set to *Emergency Savings*, *Retirement*, *Taxable Brokerage*, *Real Estate*, *Debt / Loans*).
+  - **Flat Highlighted Sidebar:** Clean list of user accounts with selection highlighting (no checkboxes), supporting single-account navigation and multi-account blending (Meta/Ctrl + Click), plus a top-level "🌟 All Accounts" row.
   - **Performance Timeframe Selector:** Quick toggle between `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime`.
+  - **Metric Unit Toggle:** Instant conversion between percentage return (`%`) and dollar gain (`$`).
   - **View Switcher:** Toggle between interactive line charts and detailed performance breakdown tables.
-  - **Target Comparison Card & Chart:** Visual overlay comparing actual return curve vs. compounded target return curve with ahead/behind metrics.
+  - **Target Comparison & Growth Projection:** Visual overlay comparing actual return curve vs. compounded target return curve with ahead/behind variance metrics.
   - **Holdings & Allocation Donut:** Interactive asset breakdown (Equities, Bonds, Real Estate, Cash, Alternatives, Debt) + searchable holding table.
   - **Real Estate & Loan Cards:** Property valuation cards displaying linked mortgage, equity progress bar, and LTV ratio.
   - **Modal Dialogs:**
-    - Add Institution / Plaid Link Modal
-    - Add Manual Asset / Real Estate Modal
-    - Add Loan / Mortgage Modal (with property link dropdown)
+    - Authentication Modal (Login / Register)
+    - Add Account Modal (Plaid / Manual Asset / Loan)
+    - Edit Account Dialog (Target return rate, subtype, category, and metadata)
     - Log Valuation / Loan Payment Modal
-    - Target Return Rate inline editor
     - Database Backup & Restore Modal
 
 ### 4. Docker & Synology NAS Integration
@@ -128,29 +137,27 @@ invest/
 
 ## Automated Testing Plan & Coverage Metrics
 
-### Test Suite Specifications
-1. **`test_auth.py`:**
-   - Registration with valid/invalid credentials, password hashing verification with bcrypt, token generation and decoding, duplicate username conflict handling (400/409), unauthorized access protections (401).
-2. **`test_accounts.py`:**
-   - Account listing scoped to user, account creation, categorization as `Emergency Savings`, `Retirement`, `Taxable Brokerage`, `Real Estate`, `Debt`, updating target return rates, active/inactive toggles.
-3. **`test_manual_assets.py`:**
-   - Real estate property creation, mortgage creation, linking mortgage to property, property net equity calculation ($\text{Market Value} - \text{Loan Balance}$), LTV percentage math, manual valuation logs, and loan payment logs.
-4. **`test_analytics.py`:**
-   - Time-Weighted Return (TWR) calculations across intervals (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `Lifetime`), nominal dollar gain calculations, multi-account blended aggregation, actual vs. target compounded projection variance, 5-tier risk profile weighting.
-5. **`test_plaid_service.py`:**
-   - AES-256 token encryption and decryption, mock link token generation, mock public token exchange, mock sync of holdings, transactions, and balances.
-6. **`test_seed.py`:**
-   - Demo portfolio seeding execution, validation of generated institutions, accounts, snapshots, and target return configs.
+### 1. Backend Test Suite (Pytest)
+1. **`test_auth.py`:** Registration, bcrypt password verification, JWT creation & decoding, duplicate username conflict handling.
+2. **`test_accounts.py`:** Account listing scoped to user, category groups, updating target rates, active status.
+3. **`test_manual_assets.py`:** Real estate creation, loans, linking, net equity math ($\text{Market Value} - \text{Loan Balance}$), LTV, manual valuation logs.
+4. **`test_analytics.py`:** TWR calculations across intervals (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `Lifetime`), nominal dollar gains, blended multi-account curves, target variances, 5-tier risk scoring.
+5. **`test_plaid_service.py`:** AES-256 token encryption/decryption, mock link token generation, mock sync of holdings, balances, transactions.
+6. **`test_seed.py`:** Demo portfolio seeding and data verification.
 
-### Coverage Targets & Exclusions
-- **Line Coverage Target:** $\ge 90\%$ across tested application modules (`backend/app/auth.py`, `models.py`, `schemas.py`, `manual_asset_service.py`, `analytics.py`, `plaid_service.py`, `seed.py`, `main.py`).
-- **Function Coverage Target:** $\ge 95\%$ across tested application functions.
-- **Explicit Exclusions:**
-  1. `backup.py` hot-swap live database file replacement (due to active SQLite engine locks during in-process test execution).
-  2. Direct third-party Plaid live network requests (external banking servers mocked in tests).
+### 2. Frontend End-to-End Test Suite (Playwright + TypeScript)
+1. **`01_auth.spec.ts`:** Brand loading, login/registration forms, modal submission.
+2. **`02_sidebar_navigation.spec.ts`:** Overview routing, flat account selection highlights, All Accounts toggle, legacy `/performance` alias.
+3. **`03_overview_view.spec.ts`:** Net worth KPIs, category distribution cards, and drill-down navigation.
+4. **`04_account_performance.spec.ts`:** $ vs. % metric toggles, horizon switching (`1M` to `Lifetime`), and Chart vs. Table toggle.
+5. **`05_account_holdings.spec.ts`:** Holdings subtab, asset allocation donut chart, and live search filtering.
+6. **`06_modals.spec.ts`:** Edit Account settings dialog pre-filling, validation, and submission.
 
 ### Verification Commands
 ```bash
-# Run pytest with line and branch coverage report
-pytest --cov=app --cov-report=term-missing --cov-report=html backend/tests
+# Run backend pytest with coverage report
+pytest --cov=app --cov-report=term-missing backend/tests
+
+# Run frontend Playwright E2E tests
+npx playwright test
 ```
