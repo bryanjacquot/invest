@@ -141,21 +141,35 @@ export default {
     `;
 
     // Attach card navigation handlers
-    const navPerf = (category) => {
+    const navAccount = (category) => {
       const params = new URLSearchParams();
-      if (category) params.set('categories', category);
+      if (category) {
+        const matching = (state.accounts || []).filter(a => {
+          if (category === 'Debt') {
+            return a.category_group === 'Debt' || a.category_group === 'Mortgages' || a.account_class === 'liability';
+          }
+          return a.category_group === category;
+        }).map(a => a.id);
+
+        if (matching.length === 1) {
+          params.set('id', matching[0]);
+        } else if (matching.length > 1) {
+          params.set('accounts', matching.join(','));
+        }
+      }
       if (state.metricUnit && state.metricUnit !== 'pct') params.set('unit', state.metricUnit);
+      if (state.activeTimeframe && state.activeTimeframe !== '1Y') params.set('timeframe', state.activeTimeframe);
       const qs = params.toString();
-      router.navigate(`/performance${qs ? `?${qs}` : ''}`);
+      router.navigate(`/account${qs ? `?${qs}` : ''}`);
     };
 
-    document.getElementById('card-kpi-all')?.addEventListener('click', () => navPerf());
-    document.getElementById('card-kpi-ret')?.addEventListener('click', () => navPerf('Retirement'));
-    document.getElementById('card-kpi-tax')?.addEventListener('click', () => navPerf('Taxable Brokerage'));
-    document.getElementById('card-kpi-ira')?.addEventListener('click', () => navPerf('IRAs'));
-    document.getElementById('card-kpi-emg')?.addEventListener('click', () => navPerf('Emergency Savings'));
+    document.getElementById('card-kpi-all')?.addEventListener('click', () => navAccount());
+    document.getElementById('card-kpi-ret')?.addEventListener('click', () => navAccount('Retirement'));
+    document.getElementById('card-kpi-tax')?.addEventListener('click', () => navAccount('Taxable Brokerage'));
+    document.getElementById('card-kpi-ira')?.addEventListener('click', () => navAccount('IRAs'));
+    document.getElementById('card-kpi-emg')?.addEventListener('click', () => navAccount('Emergency Savings'));
     document.getElementById('card-kpi-re')?.addEventListener('click', () => router.navigate('/real-estate'));
-    document.getElementById('card-kpi-mort')?.addEventListener('click', () => navPerf('Debt'));
+    document.getElementById('card-kpi-mort')?.addEventListener('click', () => navAccount('Debt'));
 
     // Load metrics
     await this.loadMetrics();

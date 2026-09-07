@@ -13,67 +13,16 @@ export function initSidebar() {
 
   // Overview Navigation Button
   document.getElementById('sidebar-nav-overview')?.addEventListener('click', () => {
-    state.selectedCategories.clear();
-    state.selectedAccountId = null;
+    state.selectedAccountIds.clear();
     router.navigate('/overview');
     closeSidebarMobile();
   });
 
-  // "All Accounts" Filter Row
-  const allCheckbox = document.getElementById('filter-all-checkbox');
-
-  const navigatePerformance = () => {
-    const params = new URLSearchParams();
-    if (state.selectedCategories && state.selectedCategories.size > 0) {
-      params.set('categories', Array.from(state.selectedCategories).join(','));
-    }
-    if (state.selectedAccountId) {
-      params.set('accounts', state.selectedAccountId);
-    }
-    if (state.metricUnit && state.metricUnit !== 'pct') {
-      params.set('unit', state.metricUnit);
-    }
-    if (state.activeTimeframe && state.activeTimeframe !== '1Y') {
-      params.set('timeframe', state.activeTimeframe);
-    }
-    const qs = params.toString();
-    router.navigate(`/performance${qs ? `?${qs}` : ''}`);
+  // "All Accounts" Selector Row
+  document.getElementById('sidebar-account-all')?.addEventListener('click', () => {
+    state.selectedAccountIds.clear();
+    navigateAccountView();
     closeSidebarMobile();
-  };
-
-  const handleAllClick = () => {
-    if (allCheckbox) {
-      allCheckbox.checked = true;
-    }
-    document.querySelectorAll('.filter-cat-checkbox').forEach(cb => {
-      cb.checked = false;
-    });
-    state.selectedCategories.clear();
-    state.selectedAccountId = null;
-    navigatePerformance();
-  };
-
-  allCheckbox?.addEventListener('change', handleAllClick);
-
-  // Category Checkboxes
-  document.querySelectorAll('.filter-cat-checkbox').forEach(cb => {
-    const handleCategoryToggle = () => {
-      state.selectedAccountId = null;
-      const checkedBoxes = document.querySelectorAll('.filter-cat-checkbox:checked');
-      const selectedSet = new Set();
-      checkedBoxes.forEach(box => selectedSet.add(box.value));
-      state.selectedCategories = selectedSet;
-
-      // If Real Estate is the only selected category, route to /real-estate
-      if (state.selectedCategories.size === 1 && state.selectedCategories.has('Real Estate')) {
-        router.navigate('/real-estate');
-        closeSidebarMobile();
-      } else {
-        navigatePerformance();
-      }
-    };
-
-    cb.addEventListener('change', handleCategoryToggle);
   });
 
   // Add Account button
@@ -88,8 +37,26 @@ export function initSidebar() {
   });
 
   applySidebarState();
-  renderSidebarFilters();
   renderSidebarAccountsList();
+}
+
+export function navigateAccountView(accountIds = null) {
+  const params = new URLSearchParams();
+  if (accountIds && accountIds.length === 1) {
+    params.set('id', accountIds[0]);
+  } else if (accountIds && accountIds.length > 1) {
+    params.set('accounts', accountIds.join(','));
+  }
+
+  if (state.metricUnit && state.metricUnit !== 'pct') {
+    params.set('unit', state.metricUnit);
+  }
+  if (state.activeTimeframe && state.activeTimeframe !== '1Y') {
+    params.set('timeframe', state.activeTimeframe);
+  }
+
+  const qs = params.toString();
+  router.navigate(`/account${qs ? `?${qs}` : ''}`);
 }
 
 export function toggleSidebar() {
@@ -124,92 +91,82 @@ export function renderSidebarState(path, params) {
   // 2. Real Estate active state
   const isRealEstate = path === '/real-estate';
 
-  // 3. Filter category checkboxes sync
-  const catParam = params.get('categories');
-  const activeCats = new Set(catParam ? catParam.split(',').filter(Boolean) : []);
-  if (isRealEstate) activeCats.add('Real Estate');
+  // 3. Account selection state
+  const allRow = document.getElementById('sidebar-account-all');
+  const idParam = params ? params.get('id') : null;
+  const accountsParam = params ? params.get('accounts') : null;
 
-  const allCheckbox = document.getElementById('filter-all-checkbox');
-  const isAll = (path === '/performance' && activeCats.size === 0 && !params.get('accounts'));
-  if (allCheckbox) allCheckbox.checked = isAll;
-
-  const allRow = document.querySelector('.filter-item-row[data-filter="all"]');
-  if (allRow) allRow.classList.toggle('active', isAll);
-
-  document.querySelectorAll('.filter-cat-checkbox').forEach(cb => {
-    const val = cb.value;
-    const isChecked = activeCats.has(val);
-    cb.checked = isChecked;
-    cb.closest('.filter-item-row')?.classList.toggle('active', isChecked);
-  });
-
-  // 4. Active account in list
-  const activeAccId = params.get('id') || params.get('accounts');
-  document.querySelectorAll('.sidebar-account-item').forEach(item => {
-    const accId = item.getAttribute('data-account-id');
-    item.classList.toggle('active', accId === activeAccId);
-  });
-}
-
-export function renderSidebarFilters() {
-  const counts = {
-    'Retirement': 0,
-    'Taxable Brokerage': 0,
-    'IRAs': 0,
-    'Emergency Savings': 0,
-    'Real Estate': 0,
-    'Debt': 0
-  };
-
-  (state.accounts || []).forEach(a => {
-    const cat = a.category_group;
-    if (counts[cat] !== undefined) {
-      counts[cat]++;
-    } else if (cat === 'Debt' || cat === 'Mortgages' || a.account_class === 'liability') {
-      counts['Debt']++;
+  if (path === '/account') {
+    if (idParam) {
+      allRow?.classList.remove('active');
+      document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-account-id') === idParam);
+      });
+    } else if (accountsParam) {
+      const selectedSet = new Set(accountsParam.split(',').filter(Boolean));
+      if (selectedSet.size === 0 || (state.accounts && selectedSet.size === state.accounts.length)) {
+        allRow?.classList.add('active');
+        document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+          item.classList.remove('active');
+        });
+      } else {
+        allRow?.classList.remove('active');
+        document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+          const accId = item.getAttribute('data-account-id');
+          item.classList.toggle('active', selectedSet.has(accId));
+        });
+      }
+    } else {
+      // Default: All Accounts active
+      allRow?.classList.add('active');
+      document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+        item.classList.remove('active');
+      });
     }
-  });
-
-  const elRet = document.getElementById('count-Retirement');
-  if (elRet) elRet.textContent = counts['Retirement'];
-
-  const elBrok = document.getElementById('count-Taxable-Brokerage');
-  if (elBrok) elBrok.textContent = counts['Taxable Brokerage'];
-
-  const elIra = document.getElementById('count-IRAs');
-  if (elIra) elIra.textContent = counts['IRAs'];
-
-  const elEmg = document.getElementById('count-Emergency-Savings');
-  if (elEmg) elEmg.textContent = counts['Emergency Savings'];
-
-  const elRe = document.getElementById('count-Real-Estate');
-  if (elRe) elRe.textContent = counts['Real Estate'];
-
-  const elDebt = document.getElementById('count-Debt');
-  if (elDebt) elDebt.textContent = counts['Debt'];
+  } else {
+    // Non-account path (e.g. overview or real-estate)
+    allRow?.classList.remove('active');
+    document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+      item.classList.remove('active');
+    });
+  }
 }
 
 export function renderSidebarAccountsList() {
   const container = document.getElementById('sidebar-accounts-list');
   const countBadge = document.getElementById('sidebar-accounts-count');
+  const allBalEl = document.getElementById('sidebar-all-balance');
 
-  if (countBadge) countBadge.textContent = (state.accounts || []).length;
+  const accounts = state.accounts || [];
+  if (countBadge) countBadge.textContent = accounts.length;
+
+  // Calculate total balance
+  let totalBal = 0;
+  accounts.forEach(a => {
+    if (a.account_class === 'liability') {
+      totalBal -= a.current_balance;
+    } else {
+      totalBal += a.current_balance;
+    }
+  });
+  if (allBalEl) allBalEl.textContent = formatCurrency(totalBal);
+
   if (!container) return;
 
-  if (!state.accounts || state.accounts.length === 0) {
+  if (accounts.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 1.5rem 0.5rem; color: var(--text-dim); font-size: 0.8rem;">
-        No accounts added yet.<br>Click below to connect or add an account.
+        No accounts added yet.<br>Click below to add an account.
       </div>
     `;
     return;
   }
 
-  container.innerHTML = state.accounts.map(a => {
+  container.innerHTML = accounts.map(a => {
     const isLiability = a.account_class === 'liability';
 
     return `
-      <div class="sidebar-account-item" data-account-id="${a.id}" onclick="window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
+      <div class="sidebar-account-item" data-account-id="${a.id}">
         <div class="account-item-left">
           <div class="account-item-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name)}</div>
         </div>
@@ -221,4 +178,40 @@ export function renderSidebarAccountsList() {
       </div>
     `;
   }).join('');
+
+  // Attach click and multi-select handlers to each item
+  container.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      const accId = item.getAttribute('data-account-id');
+      if (!accId) return;
+
+      const isMultiModifier = e.metaKey || e.ctrlKey || e.shiftKey;
+
+      if (isMultiModifier) {
+        // Multi-select toggle
+        if (state.selectedAccountIds.has(accId)) {
+          state.selectedAccountIds.delete(accId);
+        } else {
+          state.selectedAccountIds.add(accId);
+        }
+
+        const selectedArr = Array.from(state.selectedAccountIds);
+        if (selectedArr.length === 0) {
+          navigateAccountView(null);
+        } else {
+          navigateAccountView(selectedArr);
+        }
+      } else {
+        // Single selection
+        state.selectedAccountIds = new Set([accId]);
+        navigateAccountView([accId]);
+      }
+      closeSidebarMobile();
+    });
+  });
+
+  // Re-sync active highlighting with current route
+  const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+  const currentParams = new URLSearchParams(window.location.search);
+  renderSidebarState(currentPath === '/' ? '/overview' : currentPath, currentParams);
 }

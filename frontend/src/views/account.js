@@ -1,5 +1,6 @@
 /**
- * Account Detail & Performance View Module (/account?id=<uuid>)
+ * Account Detail & Performance View Module (/account)
+ * Consolidates single-account, multi-account, and all-accounts performance and holdings.
  */
 import { apiFetch } from '../api.js';
 import { state, setMetricUnit } from '../state.js';
@@ -7,9 +8,23 @@ import { router } from '../router.js';
 import { formatCurrency, formatPercent, formatDate } from '../utils/formatters.js';
 import { escapeHtml } from '../utils/dom.js';
 
+const ACCOUNT_COLORS = [
+  '#38bdf8', // Sky Blue
+  '#a855f7', // Purple
+  '#fbbf24', // Amber
+  '#f43f5e', // Rose
+  '#06b6d4', // Cyan
+  '#818cf8', // Indigo
+  '#a3e635', // Lime
+  '#2dd4bf', // Teal
+  '#d946ef', // Fuchsia
+  '#fb923c'  // Orange
+];
+
 export default {
-  accountId: null,
-  accountData: null,
+  selectedAccountIds: [],
+  isSingleAccount: false,
+  singleAccount: null,
   params: null,
   charts: {
     performance: null,
@@ -19,79 +34,41 @@ export default {
 
   async mount(container, params) {
     this.params = params;
-    this.accountId = params.get('id');
+    const idParam = params.get('id');
+    const accountsParam = params.get('accounts');
 
-    if (!this.accountId) {
-      this.renderAccountsDirectory(container);
-      return;
-    }
-
-    await this.renderAccountView(container, this.accountId);
-  },
-
-  renderAccountsDirectory(container) {
     const accounts = state.accounts || [];
-    container.innerHTML = `
-      <section class="account-view-container">
-        <div class="view-header-bar glass-card">
-          <div>
-            <h2>Accounts Directory</h2>
-            <p class="subtext">Select an individual account to view performance, edit target return rates, or log balance updates.</p>
-          </div>
-          <button class="btn btn-primary" onclick="window.dispatchEvent(new CustomEvent('invest:open-add-account'))">
-            + Add Account
-          </button>
-        </div>
 
-        <div class="cards-grid" style="margin-top: 1.5rem;">
-          ${accounts.map(a => `
-            <div class="glass-card property-card interactive-card" onclick="window.dispatchEvent(new CustomEvent('invest:navigate-account', { detail: { accountId: '${a.id}' } }))">
-              <div class="property-card-header">
-                <div>
-                  <div class="property-title">${escapeHtml(a.name)}</div>
-                  <div class="property-address">${escapeHtml(a.institution_name || 'Manual')} • <span class="badge-pill moderate">${escapeHtml(a.category_group)}</span></div>
-                </div>
-                <div style="font-size: 1.1rem; font-weight: 700; color: ${a.account_class === 'liability' ? 'var(--accent-red)' : 'var(--accent-green)'};">
-                  ${formatCurrency(a.current_balance)}
-                </div>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 0.75rem; color: var(--text-muted);">
-                <span>Target Rate: <strong>+${(a.target_annual_return_rate || 7.0).toFixed(1)}%</strong></span>
-                <span>Type: ${escapeHtml(a.subtype || a.type)}</span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </section>
-    `;
+    if (idParam) {
+      this.selectedAccountIds = [idParam];
+      this.isSingleAccount = true;
+    } else if (accountsParam) {
+      this.selectedAccountIds = accountsParam.split(',').filter(Boolean);
+      this.isSingleAccount = (this.selectedAccountIds.length === 1);
+    } else {
+      this.selectedAccountIds = accounts.map(a => a.id);
+      this.isSingleAccount = (this.selectedAccountIds.length === 1);
+    }
+
+    if (this.isSingleAccount && this.selectedAccountIds.length === 1) {
+      let acc = accounts.find(a => a.id === this.selectedAccountIds[0]);
+      if (!acc) {
+        try {
+          const freshAccounts = await apiFetch('/accounts');
+          acc = freshAccounts.find(a => a.id === this.selectedAccountIds[0]);
+        } catch (err) {
+          console.error('Error fetching account details:', err);
+        }
+      }
+      this.singleAccount = acc || null;
+    } else {
+      this.singleAccount = null;
+    }
+
+    await this.renderView(container);
   },
 
-  async renderAccountView(container, accountId) {
-    let account = (state.accounts || []).find(a => a.id === accountId);
-    if (!account) {
-      try {
-        const accs = await apiFetch('/accounts');
-        account = accs.find(a => a.id === accountId);
-      } catch (err) {
-        console.error('Failed to load account:', err);
-      }
-    }
-
-    if (!account) {
-      container.innerHTML = `
-        <div class="glass-card" style="text-align: center; padding: 3rem;">
-          <h3>Account Not Found</h3>
-          <p class="subtext">The requested account could not be located in your portfolio.</p>
-          <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="window.dispatchEvent(new CustomEvent('invest:navigate-overview'))">
-            ← Back to Overview
-          </button>
-        </div>
-      `;
-      return;
-    }
-
-    this.accountData = account;
-
+  async renderView(container) {
     const activeSubTab = this.params.get('tab') || 'performance';
     const activeTf = this.params.get('timeframe') || state.activeTimeframe || '1Y';
     const activeUnit = this.params.get('unit') || state.metricUnit || 'pct';
@@ -99,46 +76,81 @@ export default {
     state.metricUnit = activeUnit;
     setMetricUnit(activeUnit);
 
-    const isLiability = account.account_class === 'liability';
+    const accounts = state.accounts || [];
+    const selectedAccs = accounts.filter(a => this.selectedAccountIds.includes(a.id));
+
+    // Calculate total balance for selected accounts
+    let totalBal = 0;
+    selectedAccs.forEach(a => {
+      if (a.account_class === 'liability') {
+        totalBal -= a.current_balance;
+      } else {
+        totalBal += a.current_balance;
+      }
+    });
+
+    const isAll = (this.selectedAccountIds.length === 0 || this.selectedAccountIds.length === accounts.length);
+    const isSingle = this.isSingleAccount && this.singleAccount;
 
     container.innerHTML = `
       <section class="account-detail-container">
-        <!-- 1. Top Account Header Card -->
+        <!-- 1. Top Account / Portfolio Header Card -->
         <div class="glass-card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
           <div>
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <h2 style="margin: 0;">${escapeHtml(account.name)}</h2>
-              <span class="badge-pill moderate">${escapeHtml(account.category_group)}</span>
-            </div>
-            <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
-              <span>Institution: <strong>${escapeHtml(account.institution_name || 'Manual')}</strong></span>
-              <span style="margin: 0 0.5rem;">•</span>
-              <span>Source: <strong>${escapeHtml(account.source_type.toUpperCase())}</strong></span>
-              <span style="margin: 0 0.5rem;">•</span>
-              <span>Subtype: <strong>${escapeHtml(account.subtype || account.type)}</strong></span>
-            </div>
+            ${isSingle ? `
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h2 style="margin: 0;">${escapeHtml(this.singleAccount.name)}</h2>
+                <span class="badge-pill moderate">${escapeHtml(this.singleAccount.category_group)}</span>
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                <span>Institution: <strong>${escapeHtml(this.singleAccount.institution_name || 'Manual')}</strong></span>
+                <span style="margin: 0 0.5rem;">•</span>
+                <span>Source: <strong>${escapeHtml(this.singleAccount.source_type.toUpperCase())}</strong></span>
+                <span style="margin: 0 0.5rem;">•</span>
+                <span>Subtype: <strong>${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</strong></span>
+              </div>
+            ` : `
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h2 style="margin: 0;">${isAll ? 'All Accounts' : `${this.selectedAccountIds.length} Accounts Selected`}</h2>
+                <span class="badge-pill moderate">${isAll ? 'Blended Portfolio' : 'Custom Selection'}</span>
+              </div>
+              <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                <span>Total Portfolio Scope</span>
+                <span style="margin: 0 0.5rem;">•</span>
+                <span><strong>${selectedAccs.length}</strong> active account${selectedAccs.length === 1 ? '' : 's'} included</span>
+              </div>
+            `}
           </div>
 
           <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
             <div>
               <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
-              <div style="font-size: 1.75rem; font-weight: 800; color: ${isLiability ? 'var(--accent-red)' : 'var(--accent-green)'};">
-                ${formatCurrency(account.current_balance)}
+              <div style="font-size: 1.75rem; font-weight: 800; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
+                ${formatCurrency(isSingle ? this.singleAccount.current_balance : totalBal)}
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
-              <button class="btn btn-sm btn-secondary" id="btn-edit-account" title="Edit account settings and specifications">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Edit Account
-              </button>
-              <button class="btn btn-sm btn-primary" id="btn-log-valuation">
-                + Log Valuation / Payment
-              </button>
+              ${isSingle ? `
+                <button class="btn btn-sm btn-secondary" id="btn-edit-account" title="Edit account settings and specifications">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Account
+                </button>
+                <button class="btn btn-sm btn-primary" id="btn-log-valuation">
+                  + Log Valuation / Payment
+                </button>
+              ` : `
+                <button class="btn btn-sm btn-secondary" id="btn-add-account-header">
+                  + Add Account
+                </button>
+                <button class="btn btn-sm btn-primary" id="btn-log-valuation-multi">
+                  + Log Valuation
+                </button>
+              `}
             </div>
           </div>
         </div>
 
-        <!-- 2. Body matching /performance view -->
+        <!-- 2. Performance & Analytics Body -->
         <div class="performance-view-container" style="margin-top: 1.5rem;">
           <!-- Sub-navigation tabs -->
           <nav class="view-tabs" id="account-sub-tabs">
@@ -197,7 +209,7 @@ export default {
               </div>
             </div>
 
-            <!-- Current TF Summary Cards (Horizontal 4-Column Grid in Single Glass Card) -->
+            <!-- Current TF Summary Cards (Horizontal 4-Column Grid) -->
             <div class="glass-card target-summary-card">
               <div class="summary-metric">
                 <span class="label" id="metric-label-1">Actual Return (<span class="current-tf-label">${activeTf}</span>)</span>
@@ -308,27 +320,50 @@ export default {
       </section>
     `;
 
-    this.bindDetailEvents(account);
+    this.bindDetailEvents();
     await this.loadData();
   },
 
-  bindDetailEvents(account) {
-    // Edit Account button -> opens Edit Account modal
+  bindDetailEvents() {
+    // Edit Account button -> opens Edit Account modal (single account)
     document.getElementById('btn-edit-account')?.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('invest:open-edit-account', {
-        detail: { accountId: account.id }
-      }));
+      if (this.singleAccount) {
+        window.dispatchEvent(new CustomEvent('invest:open-edit-account', {
+          detail: { accountId: this.singleAccount.id }
+        }));
+      }
     });
 
-    // Log Valuation button -> opens Valuation modal
+    // Log Valuation button (single account)
     document.getElementById('btn-log-valuation')?.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
-        detail: {
-          accountId: account.id,
-          currentValue: account.current_balance,
-          title: account.account_class === 'liability' ? 'Mortgage / Loan Payment' : 'Valuation Update'
-        }
-      }));
+      if (this.singleAccount) {
+        window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
+          detail: {
+            accountId: this.singleAccount.id,
+            currentValue: this.singleAccount.current_balance,
+            title: this.singleAccount.account_class === 'liability' ? 'Mortgage / Loan Payment' : 'Valuation Update'
+          }
+        }));
+      }
+    });
+
+    // Add Account button (multi-account header)
+    document.getElementById('btn-add-account-header')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('invest:open-add-account'));
+    });
+
+    // Log Valuation button (multi-account header)
+    document.getElementById('btn-log-valuation-multi')?.addEventListener('click', () => {
+      const firstAcc = (state.accounts || []).find(a => this.selectedAccountIds.includes(a.id)) || state.accounts[0];
+      if (firstAcc) {
+        window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
+          detail: {
+            accountId: firstAcc.id,
+            currentValue: firstAcc.current_balance,
+            title: firstAcc.account_class === 'liability' ? 'Mortgage / Loan Payment' : 'Valuation Update'
+          }
+        }));
+      }
     });
 
     // Subtab buttons
@@ -381,12 +416,22 @@ export default {
 
   updateUrl(overrides = {}) {
     const currentParams = new URLSearchParams(window.location.search);
-    if (!currentParams.has('id') && this.accountId) {
-      currentParams.set('id', this.accountId);
+
+    if (this.isSingleAccount && this.selectedAccountIds.length === 1) {
+      currentParams.set('id', this.selectedAccountIds[0]);
+      currentParams.delete('accounts');
+    } else if (this.selectedAccountIds.length > 0 && this.selectedAccountIds.length < (state.accounts || []).length) {
+      currentParams.set('accounts', this.selectedAccountIds.join(','));
+      currentParams.delete('id');
+    } else {
+      currentParams.delete('id');
+      currentParams.delete('accounts');
     }
+
     if (state.metricUnit && state.metricUnit !== 'pct' && !currentParams.has('unit')) {
       currentParams.set('unit', state.metricUnit);
     }
+
     Object.entries(overrides).forEach(([k, v]) => {
       if (v === null || v === undefined) {
         currentParams.delete(k);
@@ -398,6 +443,16 @@ export default {
     const queryString = currentParams.toString();
     const newUrl = `/account${queryString ? `?${queryString}` : ''}`;
     router.navigate(newUrl);
+  },
+
+  getFilterQueryString() {
+    if (this.isSingleAccount && this.selectedAccountIds.length === 1) {
+      return encodeURIComponent(this.selectedAccountIds[0]);
+    }
+    if (this.selectedAccountIds.length > 0 && this.selectedAccountIds.length < (state.accounts || []).length) {
+      return encodeURIComponent(this.selectedAccountIds.join(','));
+    }
+    return 'all';
   },
 
   async loadData() {
@@ -412,7 +467,8 @@ export default {
   async loadPerformanceMetrics() {
     try {
       const isDollar = (this.params.get('unit') === 'dollar' || state.metricUnit === 'dollar');
-      const data = await apiFetch(`/analytics/performance?timeframe=${state.activeTimeframe}&account_filter=${encodeURIComponent(this.accountId)}`);
+      const filterStr = this.getFilterQueryString();
+      const data = await apiFetch(`/analytics/performance?timeframe=${state.activeTimeframe}&account_filter=${filterStr}`);
 
       const currMetric = data.timeframe_metrics[state.activeTimeframe] || {};
       document.querySelectorAll('.current-tf-label').forEach(el => el.textContent = state.activeTimeframe);
@@ -509,18 +565,18 @@ export default {
       const chartTitle = document.getElementById('chart-title');
       if (chartTitle) {
         chartTitle.textContent = isDollar
-          ? 'Account Balance vs Target Projection ($)'
+          ? 'Growth vs Target Annual Projection ($)'
           : 'Growth vs Target Annual Projection (%)';
       }
 
-      this.renderPerformanceChart(data.chart_series, isDollar);
+      this.renderPerformanceChart(data.chart_series, isDollar, data.account_breakdown);
       this.renderPerformanceTable(data.timeframe_metrics, isDollar);
     } catch (err) {
-      console.error('Error loading account performance metrics:', err);
+      console.error('Error loading performance metrics:', err);
     }
   },
 
-  renderPerformanceChart(chartSeries, isDollar = false) {
+  renderPerformanceChart(chartSeries, isDollar = false, accountBreakdown = []) {
     const canvas = document.getElementById('accountPerformanceChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -530,45 +586,85 @@ export default {
     }
 
     const labels = chartSeries.map(p => p.date);
+    const datasets = [];
+
+    // Check if we have multiple accounts in the breakdown/series
+    const isMulti = !this.isSingleAccount && accountBreakdown.length > 1;
+
+    // 1. Total/Blended Actual Line (Green #10b981)
     const actualData = isDollar
       ? chartSeries.map(p => p.actual_balance)
       : chartSeries.map(p => p.actual_return_pct);
+
+    const totalLabel = isMulti
+      ? (isDollar ? 'Total ($)' : 'Average Return (%)')
+      : (isDollar ? 'Actual Balance ($)' : 'Actual Return (%)');
+
+    datasets.push({
+      label: totalLabel,
+      data: actualData,
+      borderColor: '#10b981',
+      backgroundColor: isMulti ? 'transparent' : 'rgba(16, 185, 129, 0.08)',
+      borderWidth: 3.0,
+      fill: !isMulti,
+      tension: 0.3,
+      pointRadius: chartSeries.length > 30 ? 0 : 3,
+      pointHoverRadius: 6,
+      order: 1
+    });
+
+    // 2. Target Line (Peach #ff9052, Dashed)
     const targetData = isDollar
       ? chartSeries.map(p => p.target_balance)
       : chartSeries.map(p => p.target_return_pct);
 
-    const actualLabel = isDollar ? 'Actual Balance ($)' : 'Actual Return (%)';
-    const targetLabel = isDollar ? 'Target Projection ($)' : 'Target Return Curve (%)';
+    const targetLabel = isDollar ? 'Target Curve ($)' : 'Target Curve (%)';
+
+    datasets.push({
+      label: targetLabel,
+      data: targetData,
+      borderColor: '#ff9052',
+      borderDash: [5, 5],
+      borderWidth: 2.2,
+      fill: false,
+      tension: 0.1,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      order: 2
+    });
+
+    // 3. Multi-account individual lines if multi-selected
+    if (isMulti && chartSeries.length > 0) {
+      const samplePoint = chartSeries[0];
+      const accBalances = samplePoint.account_balances || {};
+      const accNames = Object.keys(accBalances);
+
+      accNames.forEach((accName, idx) => {
+        const color = ACCOUNT_COLORS[idx % ACCOUNT_COLORS.length];
+        const lineData = chartSeries.map(p => {
+          if (isDollar) {
+            return p.account_balances ? (p.account_balances[accName] || 0) : 0;
+          }
+          return p.account_returns_pct ? (p.account_returns_pct[accName] || 0) : 0;
+        });
+
+        datasets.push({
+          label: accName,
+          data: lineData,
+          borderColor: color,
+          borderWidth: 2.0,
+          fill: false,
+          tension: 0.3,
+          pointRadius: chartSeries.length > 30 ? 0 : 2,
+          pointHoverRadius: 5,
+          order: 3 + idx
+        });
+      });
+    }
 
     this.charts.performance = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: actualLabel,
-            data: actualData,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-            borderWidth: 2.8,
-            fill: true,
-            tension: 0.3,
-            pointRadius: chartSeries.length > 30 ? 0 : 3,
-            pointHoverRadius: 6
-          },
-          {
-            label: targetLabel,
-            data: targetData,
-            borderColor: '#ff9052',
-            borderDash: [5, 5],
-            borderWidth: 2.2,
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0,
-            pointHoverRadius: 5
-          }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -665,9 +761,10 @@ export default {
 
   async loadHoldingsAndAllocation() {
     try {
+      const filterStr = this.getFilterQueryString();
       const [riskData, holdingsData] = await Promise.all([
-        apiFetch(`/analytics/risk-profile?account_filter=${encodeURIComponent(this.accountId)}`),
-        apiFetch(`/analytics/holdings?account_filter=${encodeURIComponent(this.accountId)}`)
+        apiFetch(`/analytics/risk-profile?account_filter=${filterStr}`),
+        apiFetch(`/analytics/holdings?account_filter=${filterStr}`)
       ]);
 
       const badge = document.getElementById('blended-risk-badge');
@@ -724,7 +821,7 @@ export default {
     if (!tbody) return;
 
     if (!holdings || holdings.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;">No holdings found for this account.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 2rem;">No holdings found for this account selection.</td></tr>';
       return;
     }
 

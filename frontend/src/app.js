@@ -7,19 +7,18 @@ import { router } from './router.js';
 
 // Views
 import overviewView from './views/overview.js';
-import performanceView from './views/performance.js';
 import accountView from './views/account.js';
 import realEstateView from './views/real_estate.js';
 
 // Components
-import { initSidebar, renderSidebarFilters, renderSidebarAccountsList } from './components/sidebar.js';
+import { initSidebar, renderSidebarAccountsList } from './components/sidebar.js';
 import { initHeader, updateUserDisplay } from './components/header.js';
 import { initModals, showAuthModal, populateLinkedAssetDropdowns } from './components/modals.js';
 
 // Register application routes
 router.register('/overview', overviewView);
-router.register('/performance', performanceView);
 router.register('/account', accountView);
+router.register('/performance', accountView); // Redirect legacy performance route to account view
 router.register('/real-estate', realEstateView);
 
 // Global event handlers for decoupled navigation & data refresh
@@ -49,7 +48,6 @@ async function loadAccounts() {
   try {
     const accs = await apiFetch('/accounts');
     setAccounts(accs);
-    renderSidebarFilters();
     renderSidebarAccountsList();
     populateLinkedAssetDropdowns();
   } catch (err) {

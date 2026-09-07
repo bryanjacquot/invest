@@ -112,91 +112,7 @@
               </span>
               <span class="nav-item-label">Overview</span>
             </button>
-          </div>
-
-          <!-- Section 1: Account Filters -->
-          <div class="sidebar-section">
-            <div class="section-title-row">
-              <span class="sidebar-section-title">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                Account Filters
-              </span>
-              <span class="sidebar-subtext">Multi-select</span>
-            </div>
-
-            <div class="filter-list" id="sidebar-filter-list">
-              <!-- All Accounts (Blended) -->
-              <label class="filter-item-row" data-filter="all">
-                <input type="checkbox" id="filter-all-checkbox" class="sidebar-checkbox" checked>
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">🌟</span>
-                  <span class="filter-item-name">All Accounts (Blended)</span>
-                </span>
-              </label>
-
-              <!-- Retirement -->
-              <label class="filter-item-row" data-filter="Retirement">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Retirement">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">🛡️</span>
-                  <span class="filter-item-name">Retirement</span>
-                </span>
-                <span class="filter-count-badge" id="count-Retirement">0</span>
-              </label>
-
-              <!-- Taxable Brokerage -->
-              <label class="filter-item-row" data-filter="Taxable Brokerage">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Taxable Brokerage">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">📈</span>
-                  <span class="filter-item-name">Taxable Brokerage</span>
-                </span>
-                <span class="filter-count-badge" id="count-Taxable-Brokerage">0</span>
-              </label>
-
-              <!-- IRAs -->
-              <label class="filter-item-row" data-filter="IRAs">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="IRAs">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">🪙</span>
-                  <span class="filter-item-name">IRAs</span>
-                </span>
-                <span class="filter-count-badge" id="count-IRAs">0</span>
-              </label>
-
-              <!-- Emergency Savings -->
-              <label class="filter-item-row" data-filter="Emergency Savings">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Emergency Savings">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">🚨</span>
-                  <span class="filter-item-name">Emergency Savings</span>
-                </span>
-                <span class="filter-count-badge" id="count-Emergency-Savings">0</span>
-              </label>
-
-              <!-- Real Estate -->
-              <label class="filter-item-row" data-filter="Real Estate">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Real Estate">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">🏡</span>
-                  <span class="filter-item-name">Real Estate</span>
-                </span>
-                <span class="filter-count-badge" id="count-Real-Estate">0</span>
-              </label>
-
-              <!-- Debt / Mortgages -->
-              <label class="filter-item-row" data-filter="Debt">
-                <input type="checkbox" class="sidebar-checkbox filter-cat-checkbox" value="Debt">
-                <span class="filter-item-info">
-                  <span class="filter-item-icon">💳</span>
-                  <span class="filter-item-name">Mortgages</span>
-                </span>
-                <span class="filter-count-badge" id="count-Debt">0</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Section 2: Individual Accounts -->
+          </div>          <!-- Section 1: Accounts (Flat List with All Accounts selector) -->
           <div class="sidebar-section accounts-sidebar-section">
             <div class="section-title-row">
               <span class="sidebar-section-title">
@@ -206,8 +122,21 @@
               <span class="sidebar-badge" id="sidebar-accounts-count">0</span>
             </div>
 
+            <!-- "All Accounts" Row -->
+            <div id="sidebar-account-all" class="sidebar-account-item active" style="margin-bottom: 0.35rem; cursor: pointer;">
+              <div class="account-item-left">
+                <span style="margin-right: 0.4rem; font-size: 0.95rem;">🌟</span>
+                <div class="account-item-name" style="font-weight: 600;">All Accounts</div>
+              </div>
+              <div class="account-item-right">
+                <div class="account-item-bal" id="sidebar-all-balance" style="font-weight: 600;">
+                  $0.00
+                </div>
+              </div>
+            </div>
+
             <div id="sidebar-accounts-list" class="sidebar-accounts-list">
-              <!-- Dynamically populated accounts with pencil edit icons -->
+              <!-- Dynamically populated accounts -->
             </div>
           </div>
 

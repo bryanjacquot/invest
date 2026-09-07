@@ -498,6 +498,11 @@ class AnalyticsEngine:
                 for a in cat_accs
             )
 
+        # Precompute per-account start balances
+        acc_start_bals = {}
+        for a in accounts:
+            acc_start_bals[a.id] = cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], start_date) * (-1.0 if a.account_class == "liability" else 1.0)
+
         for i in range(num_steps + 1):
             curr_date = start_date + timedelta(days=i * step_days)
             if curr_date > end_date:
@@ -506,6 +511,9 @@ class AnalyticsEngine:
             # Category balance & return on curr_date
             cat_balances = {}
             cat_returns = {}
+            # Account balance & return on curr_date
+            acc_balances = {}
+            acc_returns = {}
             actual_val = 0.0
 
             for cat, cat_accs in category_map.items():
@@ -522,6 +530,17 @@ class AnalyticsEngine:
                     cret = 0.0
                 cat_returns[cat] = cret
 
+            for a in accounts:
+                acc_val = cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], curr_date) * (-1.0 if a.account_class == "liability" else 1.0)
+                acc_label = a.name
+                acc_balances[acc_label] = round(acc_val, 2)
+                asb = acc_start_bals.get(a.id, 0.0)
+                if asb > 0:
+                    aret = round(((acc_val - asb) / asb * 100.0), 2)
+                else:
+                    aret = 0.0
+                acc_returns[acc_label] = aret
+
             actual_ret = round(((actual_val - start_bal) / base_bal * 100.0), 2)
 
             # Target compounded curve
@@ -536,7 +555,9 @@ class AnalyticsEngine:
                 target_balance=round(target_val, 2),
                 target_return_pct=target_ret,
                 category_balances=cat_balances,
-                category_returns_pct=cat_returns
+                category_returns_pct=cat_returns,
+                account_balances=acc_balances,
+                account_returns_pct=acc_returns
             ))
 
         return points
