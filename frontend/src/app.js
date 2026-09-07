@@ -18,7 +18,6 @@ import { initModals, showAuthModal, populateLinkedAssetDropdowns } from './compo
 // Register application routes
 router.register('/overview', overviewView);
 router.register('/account', accountView);
-router.register('/performance', accountView); // Redirect legacy performance route to account view
 router.register('/real-estate', realEstateView);
 
 // Global event handlers for decoupled navigation & data refresh

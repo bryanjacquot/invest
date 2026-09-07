@@ -111,7 +111,7 @@ invest/
 ### 3. Frontend Web Application (`frontend/`)
 - **Design System & Aesthetics:**
   - Modern dark-mode palette with glassmorphism cards, subtle neon teal/blue accents, clean typography (Inter / Outfit), crisp stat badges.
-  - Single-page architecture with dynamic modular views: **Overview Dashboard** (`/overview`), **Unified Account & Performance** (`/account` and legacy `/performance`), **Real Estate & Loans** (`/real-estate`), and **Modal Dialogs**.
+  - Single-page architecture with dynamic modular views: **Overview Dashboard** (`/overview`), **Unified Account & Performance** (`/account`), **Real Estate & Loans** (`/real-estate`), and **Modal Dialogs**.
 - **Interactive UI Capabilities:**
   - **Top Navigation & Auth Header:** User profile, sync status indicator, prominent **"⚡ Sync Now"** button, and Logout.
   - **Flat Highlighted Sidebar:** Clean list of user accounts with selection highlighting (no checkboxes), supporting single-account navigation and multi-account blending (Meta/Ctrl + Click), plus a top-level "🌟 All Accounts" row.
@@ -147,7 +147,7 @@ invest/
 
 ### 2. Frontend End-to-End Test Suite (Playwright + TypeScript)
 1. **`01_auth.spec.ts`:** Brand loading, login/registration forms, modal submission.
-2. **`02_sidebar_navigation.spec.ts`:** Overview routing, flat account selection highlights, All Accounts toggle, legacy `/performance` alias.
+2. **`02_sidebar_navigation.spec.ts`:** Overview routing, flat account selection highlights, All Accounts toggle.
 3. **`03_overview_view.spec.ts`:** Net worth KPIs, category distribution cards, and drill-down navigation.
 4. **`04_account_performance.spec.ts`:** $ vs. % metric toggles, horizon switching (`1M` to `Lifetime`), and Chart vs. Table toggle.
 5. **`05_account_holdings.spec.ts`:** Holdings subtab, asset allocation donut chart, and live search filtering.

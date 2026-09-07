@@ -72,7 +72,7 @@ flowchart TD
    - Proxies `/api/*` requests internally to `http://invest-api:3011/api/*`.
    - UI Views & Modules:
      - **Overview Dashboard (`/overview`):** Net worth KPIs, category distribution cards, and 5-year timeline.
-     - **Unified Account & Performance (`/account`, `/performance`):** Single-account, multi-account, and blended portfolio performance, target curve comparison ($ and %), Chart/Table toggles, Holdings breakdown & asset allocation donut, and "Edit Account" configuration dialog.
+     - **Unified Account & Performance (`/account`):** Single-account, multi-account, and blended portfolio performance, target curve comparison ($ and %), Chart/Table toggles, Holdings breakdown & asset allocation donut, and "Edit Account" configuration dialog.
      - **Real Estate & Loans (`/real-estate`):** Property cards, linked mortgage equity calculations, and LTV gauges.
      - **Modals:** Authentication, Unified Add Account, Edit Account settings, Valuation & Loan Payment loggers, Database Backup & Restore.
 

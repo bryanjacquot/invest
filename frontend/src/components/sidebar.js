@@ -96,7 +96,7 @@ export function renderSidebarState(path, params) {
   const idParam = params ? params.get('id') : null;
   const accountsParam = params ? params.get('accounts') : null;
 
-  if (path === '/account' || path === '/performance') {
+  if (path === '/account') {
     if (idParam) {
       allRow?.classList.remove('active');
       document.querySelectorAll('.sidebar-account-item[data-account-id]').forEach(item => {

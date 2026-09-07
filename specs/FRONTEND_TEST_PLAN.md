@@ -29,30 +29,22 @@ The automated frontend testing suite ensures end-to-end (E2E) correctness, UI re
 specs/
 └── FRONTEND_TEST_PLAN.md
 
-frontend/ (or project root)
+invest/
 ├── e2e/
 │   ├── fixtures/
-│   │   ├── auth.fixture.ts         # Pre-authenticated user sessions & token injection
-│   │   └── mock-data.ts            # Deterministic portfolio and chart datasets
+│   │   └── auth.fixture.ts         # Pre-authenticated user sessions & automated demo seeding
 │   ├── page-objects/
-│   │   ├── BasePage.ts             # Global layout, header, sync, and theme helpers
-│   │   ├── SidebarComponent.ts     # Flat account list, All Accounts, multi-select highlights
-│   │   ├── OverviewPage.ts         # Net worth KPI cards, asset progress bar, debt ratio
+│   │   ├── SidebarComponent.ts     # Flat account list, All Accounts, selection highlights
+│   │   ├── OverviewPage.ts         # Net worth KPI cards, category navigation
 │   │   ├── AccountPage.ts          # Performance, $ / % toggle, horizon buttons, Chart/Table, Holdings
-│   │   ├── RealEstatePage.ts       # Property cards, mortgage balances, equity calculations
-│   │   └── Modals/
-│   │       ├── AuthModal.ts        # Login & registration forms
-│   │       ├── EditAccountModal.ts # Account name, category dropdown, target APR rate
-│   │       ├── ValuationModal.ts   # Balance updates & mortgage payments
-│   │       └── AddAccountModal.ts  # Manual asset & linked liability creation
-│   ├── tests/
-│   │   ├── 01_auth.spec.ts
-│   │   ├── 02_sidebar_navigation.spec.ts
-│   │   ├── 03_overview_view.spec.ts
-│   │   ├── 04_account_performance.spec.ts
-│   │   ├── 05_account_holdings.spec.ts
-│   │   ├── 06_modals_and_actions.spec.ts
-│   │   └── 07_real_estate.spec.ts
+│   │   └── Modals.ts               # Edit Account modal dialog inputs & actions
+│   └── tests/
+│       ├── 01_auth.spec.ts         # App loading and user authentication
+│       ├── 02_sidebar_navigation.spec.ts # Navigation & flat selection highlights
+│       ├── 03_overview_view.spec.ts # Net worth metrics & card routing
+│       ├── 04_account_performance.spec.ts # Metrics, timeframes, and Chart/Table toggles
+│       ├── 05_account_holdings.spec.ts # Donut chart & holdings search filter
+│       └── 06_modals.spec.ts       # Edit account modal pre-filling and submission
 ├── playwright.config.ts
 ├── package.json
 └── tsconfig.json
@@ -77,10 +69,8 @@ frontend/ (or project root)
 | :--- | :--- | :--- | :--- |
 | **NAV-01** | Overview menu click | Click "Overview" nav item | URL updates to `/overview`; Overview menu item has `.active` highlight |
 | **NAV-02** | Single account selection | Click an account in the flat list | URL updates to `/account?id=<id>`; account item has `.active` highlight; "All Accounts" is not highlighted |
-| **NAV-03** | Multi-account selection (`Cmd`/`Ctrl` click) | `Cmd`+click 2 or more accounts | URL updates to `/account?accounts=id1,id2`; all selected accounts have `.active` highlights |
-| **NAV-04** | "All Accounts" selection | Click "All Accounts" row | URL updates to `/account`; "All Accounts" has `.active` highlight; individual accounts lose highlight |
-| **NAV-05** | Legacy URL redirect | Navigate directly to `/performance` | Route resolves to `/account` seamlessly without breaking |
-| **NAV-06** | Mobile drawer toggle | Click hamburger toggle on viewport width < 1024px | Sidebar panel slides in; clicking backdrop dismisses sidebar |
+| **NAV-03** | "All Accounts" selection | Click "All Accounts" row | URL updates to `/account`; "All Accounts" has `.active` highlight; individual accounts lose highlight |
+| **NAV-04** | Mobile drawer toggle | Click hamburger toggle on viewport width < 1024px | Sidebar panel slides in; clicking backdrop dismisses sidebar |
 
 ---
 
@@ -116,7 +106,7 @@ frontend/ (or project root)
 
 ---
 
-### Suite 6: Modals & Data Modifications (`06_modals_and_actions.spec.ts`)
+### Suite 6: Modals & Data Modifications (`06_modals.spec.ts`)
 | Test ID | Scenario | Actions | Assertions |
 | :--- | :--- | :--- | :--- |
 | **MOD-01** | Edit Account dialog | Click "Edit Account" button in account header | Modal opens; pre-populates name, category group, and target APR rate; submitting `PUT /api/accounts/{id}` updates balance card and table |

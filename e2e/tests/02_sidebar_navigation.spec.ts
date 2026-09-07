@@ -33,9 +33,4 @@ test.describe('Suite 2: Sidebar Navigation & Selection Highlights', () => {
     await expect(page).toHaveURL(/\/account(?!\?id=)/);
     await sidebar.expectAllAccountsActive(true);
   });
-
-  test('NAV-04: Legacy /performance URL routes to unified /account view', async ({ page }) => {
-    await page.goto('/performance');
-    await expect(page.locator('.account-detail-container')).toBeVisible({ timeout: 10000 });
-  });
 });
