@@ -239,7 +239,7 @@ export default {
             <!-- Chart View -->
             <div id="performance-chart-container" class="glass-card chart-wrapper">
               <div class="chart-header">
-                <h3 id="chart-title">Growth vs Target Annual Projection</h3>
+                <h3 id="chart-title">Growth vs Target Annual Projection ${activeUnit === 'dollar' ? '($)' : '(%)'}</h3>
               </div>
               <div class="canvas-container" style="position: relative; height: 380px; width: 100%;">
                 <canvas id="accountPerformanceChart"></canvas>

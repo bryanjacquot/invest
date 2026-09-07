@@ -58,6 +58,11 @@ class Router {
 
     state.activeRoute = normalizedPath;
 
+    // Dispatch global route changed event immediately for instant UI feedback (sidebar, header)
+    window.dispatchEvent(new CustomEvent('invest:route-changed', {
+      detail: { path: normalizedPath, params: searchParams }
+    }));
+
     // Find matching route view
     let viewModule = this.routes.get(normalizedPath);
     if (!viewModule) {
@@ -78,11 +83,6 @@ class Router {
     if (viewModule && typeof viewModule.mount === 'function') {
       await viewModule.mount(this.container, searchParams);
     }
-
-    // Dispatch global route changed event for components (sidebar, header)
-    window.dispatchEvent(new CustomEvent('invest:route-changed', {
-      detail: { path: normalizedPath, params: searchParams }
-    }));
   }
 }
 

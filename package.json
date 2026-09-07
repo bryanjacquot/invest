@@ -1,0 +1,26 @@
+{
+  "name": "invest",
+  "version": "1.0.0",
+  "description": "A self-hosted personal finance intelligence system running in Docker containers on Synology NAS. Tracks investment performance, net worth, actual vs. target return rates, granular product holdings, 5-tier risk profiles, real estate equity, and linked mortgages.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bryanjacquot/invest.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/bryanjacquot/invest/issues"
+  },
+  "homepage": "https://github.com/bryanjacquot/invest#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  }
+}

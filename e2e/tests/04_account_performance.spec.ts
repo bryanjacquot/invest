@@ -1,0 +1,38 @@
+import { test, expect } from '../fixtures/auth.fixture';
+import { AccountPage } from '../page-objects/AccountPage';
+
+test.describe('Suite 4: Account Performance & Controls', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/account');
+    await page.locator('.account-detail-container').waitFor({ state: 'visible', timeout: 10000 });
+  });
+
+  test('ACC-01: Metric unit toggle converts between % and $ without losing state', async ({ page }) => {
+    const accPage = new AccountPage(page);
+    await accPage.btnUnitDollar.click();
+    await expect(page).toHaveURL(/unit=dollar/);
+    await expect(page.locator('#chart-title')).toContainText('($)');
+
+    await accPage.btnUnitPct.click();
+    await expect(page).toHaveURL(/unit=pct/);
+    await expect(page.locator('#chart-title')).toContainText('(%)');
+  });
+
+  test('ACC-02: Horizon selection updates timeframe in URL and summary', async ({ page }) => {
+    const accPage = new AccountPage(page);
+    await accPage.selectTimeframe('3Y');
+    await expect(page).toHaveURL(/timeframe=3Y/);
+    await expect(page.locator('.current-tf-label').first()).toHaveText('3Y');
+  });
+
+  test('ACC-03: View format toggles between Chart and Table', async ({ page }) => {
+    const accPage = new AccountPage(page);
+    await accPage.switchToTable();
+    await expect(accPage.matrixTable).toBeVisible();
+    await expect(page.locator('#performance-chart-container')).toBeHidden();
+
+    await accPage.switchToChart();
+    await expect(page.locator('#performance-chart-container')).toBeVisible();
+    await expect(accPage.matrixTable).toBeHidden();
+  });
+});
