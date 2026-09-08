@@ -71,8 +71,66 @@ test.describe('Suite 6: Modals & Actions', () => {
     await expect(modals.debtAccountInterestInput).toBeVisible();
     await expect(modals.debtAccountPaymentInput).toBeVisible();
 
+    // Verify Link to Debt Dropdown in Tab 2
+    await modals.tabManual.click();
+    await expect(modals.manualAccountLinkedDebtSelect).toBeVisible();
+
+    // Verify Link to Asset Dropdown in Tab 3
+    await modals.tabDebt.click();
+    await expect(modals.debtAccountLinkedAssetSelect).toBeVisible();
+
     // Close modal
     await modals.addAccountModal.locator('.modal-close-btn').first().click();
     await expect(modals.addAccountModal).toBeHidden();
+  });
+
+  test('MOD-03: Bidirectional Asset-Debt linking in Add Account creates mutual link', async ({ page }) => {
+    const modals = new Modals(page);
+    const addAccountBtn = page.locator('#btn-sidebar-add-account');
+    await addAccountBtn.click();
+
+    // 1. Create a Debt Account
+    await modals.tabDebt.click();
+    const testDebtName = `Auto Loan ${Date.now()}`;
+    await modals.debtAccountNameInput.fill(testDebtName);
+    await modals.debtAccountBalanceInput.fill('25000');
+    await modals.debtAccountInterestInput.fill('4.5');
+    await modals.debtAccountPaymentInput.fill('500');
+    await modals.debtSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Open Add Account and Create an Asset linking to the new Debt Account
+    await addAccountBtn.click();
+    await modals.tabManual.click();
+    const testAssetName = `Car Asset ${Date.now()}`;
+    await modals.manualAccountNameInput.fill(testAssetName);
+    await modals.manualAccountBalanceInput.fill('35000');
+    await modals.manualAccountTargetInput.fill('5.0');
+
+    // Select the debt account from the dropdown
+    const debtOption = modals.manualAccountLinkedDebtSelect.locator('option', { hasText: testDebtName });
+    await debtOption.waitFor({ state: 'attached', timeout: 5000 });
+    const debtVal = await debtOption.getAttribute('value');
+    await modals.manualAccountLinkedDebtSelect.selectOption(debtVal!);
+    await modals.manualSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 3. Find and click on the Debt Account in the sidebar to check its Edit modal
+    const debtItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: testDebtName });
+    await debtItem.waitFor({ state: 'visible', timeout: 8000 });
+    await debtItem.click();
+
+    // Open Edit modal on Debt Account
+    const editBtn = page.locator('#btn-edit-account');
+    await editBtn.waitFor({ state: 'visible', timeout: 8000 });
+    await editBtn.click();
+
+    // Verify it is bidirectionally linked back to the Asset
+    await expect(modals.editAccountModal).toBeVisible();
+    await expect(modals.editLinkedAccountSelect).not.toHaveValue('');
+
+    // Close modal
+    await modals.editAccountModal.locator('button:has-text("Cancel")').click();
+    await expect(modals.editAccountModal).toBeHidden();
   });
 });

@@ -75,8 +75,8 @@ class Account(Base):
     holdings = relationship("Holding", back_populates="account", cascade="all, delete-orphan")
     transactions = relationship("Transaction", back_populates="account", cascade="all, delete-orphan")
 
-    # Relationships for loan to asset linking
-    linked_asset = relationship("Account", remote_side=[id], foreign_keys=[linked_asset_id], backref="linked_loans")
+    # Relationships for loan to asset linking (post_update allows bidirectional links without circular flush dependency)
+    linked_asset = relationship("Account", remote_side=[id], foreign_keys=[linked_asset_id], post_update=True, backref="linked_loans")
 
 
 class ManualAccountDetail(Base):

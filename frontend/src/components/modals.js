@@ -125,6 +125,7 @@ export function openAddAccountModal(activeTab = 'plaid') {
   const modal = document.getElementById('modal-add-account');
   if (!modal) return;
 
+  populateLinkedAssetDropdowns();
   modal.classList.remove('hidden');
   switchAddAccountTab(activeTab);
 }
@@ -167,6 +168,7 @@ function setupAddAccountModal() {
     const name = document.getElementById('manual-account-name')?.value.trim();
     const balance = parseFloat(document.getElementById('manual-account-balance')?.value) || 0;
     const target = parseFloat(document.getElementById('manual-account-target')?.value) || 7.0;
+    const linkedDebtId = document.getElementById('manual-account-linked-debt')?.value || null;
 
     const typeConfig = MANUAL_ACCOUNT_TYPES[typeKey] || {
       type: 'investment',
@@ -184,7 +186,8 @@ function setupAddAccountModal() {
           category_group: typeConfig.category_group,
           account_class: 'asset',
           initial_balance: balance,
-          target_annual_return_rate: target
+          target_annual_return_rate: target,
+          linked_asset_id: linkedDebtId
         })
       });
 
@@ -201,6 +204,7 @@ function setupAddAccountModal() {
     e.preventDefault();
     const name = document.getElementById('debt-account-name')?.value.trim();
     const balance = parseFloat(document.getElementById('debt-account-balance')?.value) || 0;
+    const linkedAssetId = document.getElementById('debt-account-linked-asset')?.value || null;
     const interest = parseFloat(document.getElementById('debt-account-interest')?.value) || null;
     const payment = parseFloat(document.getElementById('debt-account-payment')?.value) || null;
 
@@ -215,6 +219,7 @@ function setupAddAccountModal() {
           account_class: 'liability',
           initial_balance: balance,
           target_annual_return_rate: 0.0,
+          linked_asset_id: linkedAssetId,
           manual_detail: {
             interest_rate: interest,
             monthly_payment: payment
@@ -254,20 +259,35 @@ function setupAddAccountModal() {
 }
 
 export function populateLinkedAssetDropdowns() {
-  const assetSelect = document.getElementById('manual-loan-linked-asset');
-  if (!assetSelect) return;
+  const accounts = state.accounts || [];
 
-  const currentVal = assetSelect.value;
-  assetSelect.innerHTML = '<option value="">None (Unsecured / Standalone)</option>';
+  // 1. Populate Debt Link Dropdown in Manual Asset Tab (show liabilities / debts)
+  const debtSelect = document.getElementById('manual-account-linked-debt');
+  if (debtSelect) {
+    const currentVal = debtSelect.value;
+    debtSelect.innerHTML = '<option value="">None (Unencumbered / Standalone)</option>';
+    accounts.filter(a => a.account_class === 'liability' || a.type === 'loan').forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} (${formatCurrency(a.current_balance)})`;
+      debtSelect.appendChild(opt);
+    });
+    if (currentVal) debtSelect.value = currentVal;
+  }
 
-  (state.accounts || []).filter(a => a.account_class === 'asset').forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.id;
-    opt.textContent = `${a.name} (${a.category_group})`;
-    assetSelect.appendChild(opt);
-  });
-
-  if (currentVal) assetSelect.value = currentVal;
+  // 2. Populate Asset Link Dropdown in Debt Tab (show assets)
+  const assetSelect = document.getElementById('debt-account-linked-asset');
+  if (assetSelect) {
+    const currentVal = assetSelect.value;
+    assetSelect.innerHTML = '<option value="">None (Unsecured / Standalone)</option>';
+    accounts.filter(a => a.account_class === 'asset').forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} (${a.category_group} - ${formatCurrency(a.current_balance)})`;
+      assetSelect.appendChild(opt);
+    });
+    if (currentVal) assetSelect.value = currentVal;
+  }
 }
 
 // 3. Valuation Modal
@@ -375,6 +395,23 @@ export function openEditAccountModal(accountId) {
   if (errPill) errPill.classList.add('hidden');
   if (successPill) successPill.classList.add('hidden');
 
+  // Populate Linked Account Dropdown in Edit Modal
+  const linkedSelect = document.getElementById('edit-acc-linked-account');
+  if (linkedSelect) {
+    linkedSelect.innerHTML = '<option value="">None (Unlinked / Standalone)</option>';
+    const isAsset = account.account_class === 'asset';
+    const compatible = (state.accounts || []).filter(a =>
+      a.id !== account.id && (isAsset ? (a.account_class === 'liability' || a.type === 'loan') : (a.account_class === 'asset'))
+    );
+    compatible.forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = `${a.name} (${a.category_group} - ${formatCurrency(a.current_balance)})`;
+      linkedSelect.appendChild(opt);
+    });
+    linkedSelect.value = account.linked_asset_id || '';
+  }
+
   if (specsList) {
     specsList.innerHTML = `
       <div class="overview-stat-row">
@@ -399,7 +436,7 @@ export function openEditAccountModal(accountId) {
       </div>
       ${account.linked_asset_name ? `
         <div class="overview-stat-row">
-          <span class="overview-stat-label">Linked Collateral Asset</span>
+          <span class="overview-stat-label">Linked Account</span>
           <span class="overview-stat-val" style="color: var(--accent-blue); font-weight: 600;">${escapeHtml(account.linked_asset_name)}</span>
         </div>
       ` : ''}
@@ -428,6 +465,7 @@ function setupEditAccountModal() {
     const name = document.getElementById('edit-acc-name').value.trim();
     const categoryGroup = document.getElementById('edit-acc-category').value;
     const targetRate = parseFloat(document.getElementById('edit-acc-target').value);
+    const linkedAssetId = document.getElementById('edit-acc-linked-account')?.value ?? undefined;
 
     const errPill = document.getElementById('edit-acc-error');
     const successPill = document.getElementById('edit-acc-success');
@@ -435,13 +473,18 @@ function setupEditAccountModal() {
     successPill?.classList.add('hidden');
 
     try {
+      const payload = {
+        name,
+        category_group: categoryGroup,
+        target_annual_return_rate: targetRate
+      };
+      if (linkedAssetId !== undefined) {
+        payload.linked_asset_id = linkedAssetId;
+      }
+
       await apiFetch(`/accounts/${accountId}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          name,
-          category_group: categoryGroup,
-          target_annual_return_rate: targetRate
-        })
+        body: JSON.stringify(payload)
       });
 
       if (successPill) {

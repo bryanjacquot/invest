@@ -309,6 +309,13 @@
               </div>
             </div>
 
+            <div class="form-group">
+              <label for="manual-account-linked-debt">Link to Debt / Mortgage (Optional)</label>
+              <select id="manual-account-linked-debt" class="form-input">
+                <option value="">None (Unencumbered / Standalone)</option>
+              </select>
+            </div>
+
             <div class="form-actions">
               <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
               <button type="submit" class="btn btn-primary btn-glow">Save Account</button>
@@ -329,9 +336,18 @@
               <input type="text" id="debt-account-name" class="form-input" placeholder="e.g. 30-Year Mortgage, Auto Loan, Student Loan" required>
             </div>
 
-            <div class="form-group">
-              <label for="debt-account-balance">Current Balance ($)</label>
-              <input type="number" step="0.01" id="debt-account-balance" class="form-input" placeholder="0.00" required>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="debt-account-balance">Current Balance ($)</label>
+                <input type="number" step="0.01" id="debt-account-balance" class="form-input" placeholder="0.00" required>
+              </div>
+
+              <div class="form-group">
+                <label for="debt-account-linked-asset">Link to Collateral Asset (Optional)</label>
+                <select id="debt-account-linked-asset" class="form-input">
+                  <option value="">None (Unsecured / Standalone)</option>
+                </select>
+              </div>
             </div>
 
             <div class="grid-2col">
@@ -474,6 +490,13 @@
               <label class="form-label" for="edit-acc-target">Target Rate (% APR)</label>
               <input type="number" id="edit-acc-target" class="form-input" step="0.1" required>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-acc-linked-account">Linked Asset / Debt Account</label>
+            <select id="edit-acc-linked-account" class="form-select">
+              <option value="">None (Unlinked / Standalone)</option>
+            </select>
           </div>
 
           <!-- Account Specifications Box -->

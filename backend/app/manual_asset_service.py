@@ -49,17 +49,18 @@ class ManualAssetService:
         user: User,
         data: ManualAccountCreate
     ) -> Account:
-        """Create a new manual asset or liability account."""
+        """Create a new manual asset or liability account with bidirectional linking."""
         institution = cls.get_or_create_manual_institution(db, user)
 
-        # Validate linked asset if specified
+        # Validate linked account if specified
+        linked = None
         if data.linked_asset_id:
             linked = db.query(Account).filter(
                 Account.id == data.linked_asset_id,
                 Account.user_id == user.id
             ).first()
             if not linked:
-                raise HTTPException(status_code=400, detail="Linked asset account not found")
+                raise HTTPException(status_code=400, detail="Linked account not found")
 
         # Create account record
         account = Account(
@@ -77,8 +78,11 @@ class ManualAssetService:
             created_at=datetime.utcnow()
         )
         db.add(account)
-        db.commit()
-        db.refresh(account)
+        db.flush()
+
+        # Update the linked account bidirectionally
+        if linked:
+            linked.linked_asset_id = account.id
 
         # Create target config
         target_rate = data.target_annual_return_rate if data.target_annual_return_rate is not None else (4.0 if data.type == "real_estate" else 7.0)
@@ -112,7 +116,7 @@ class ManualAssetService:
             snapshot_timestamp=datetime.utcnow(),
             current_balance=initial_val,
             available_balance=initial_val,
-            cost_basis_total=data.manual_detail.purchase_price if data.manual_detail else initial_val,
+            cost_basis_total=data.manual_detail.purchase_price if data.manual_detail and data.manual_detail.purchase_price else initial_val,
             market_value_total=initial_val,
             note="Initial valuation entry"
         )
@@ -149,7 +153,7 @@ class ManualAssetService:
         account_id: str,
         data: AccountUpdate
     ) -> Account:
-        """Update account properties like category group, name, target return, or linked asset."""
+        """Update account properties like category group, name, target return, or linked asset (bidirectionally)."""
         account = db.query(Account).filter(
             Account.id == account_id,
             Account.user_id == user.id
@@ -163,15 +167,30 @@ class ManualAssetService:
             account.category_group = data.category_group
         if data.is_active is not None:
             account.is_active = data.is_active
+
         if data.linked_asset_id is not None:
-            if data.linked_asset_id != "":
+            old_linked_id = account.linked_asset_id
+            new_linked_id = data.linked_asset_id if data.linked_asset_id != "" else None
+
+            # If old link existed and is changing/removed, clear the other account's pointer
+            if old_linked_id and old_linked_id != new_linked_id:
+                old_linked = db.query(Account).filter(
+                    Account.id == old_linked_id,
+                    Account.user_id == user.id
+                ).first()
+                if old_linked and old_linked.linked_asset_id == account.id:
+                    old_linked.linked_asset_id = None
+
+            if new_linked_id:
                 linked = db.query(Account).filter(
-                    Account.id == data.linked_asset_id,
+                    Account.id == new_linked_id,
                     Account.user_id == user.id
                 ).first()
                 if not linked:
-                    raise HTTPException(status_code=400, detail="Linked asset account not found")
-                account.linked_asset_id = data.linked_asset_id
+                    raise HTTPException(status_code=400, detail="Linked account not found")
+                account.linked_asset_id = new_linked_id
+                # Establish bidirectional pointer
+                linked.linked_asset_id = account.id
             else:
                 account.linked_asset_id = None
 
@@ -243,12 +262,20 @@ class ManualAssetService:
             ).order_by(AccountSnapshot.snapshot_timestamp.desc()).first()
             market_val = last_prop_snap.current_balance if last_prop_snap else 0.0
 
-            # Find linked mortgage / loan
-            mortgage = db.query(Account).filter(
-                Account.linked_asset_id == prop.id,
-                Account.user_id == user.id,
-                Account.is_active == True
-            ).first()
+            # Find linked mortgage / loan bidirectionally
+            mortgage = None
+            if prop.linked_asset_id:
+                mortgage = db.query(Account).filter(
+                    Account.id == prop.linked_asset_id,
+                    Account.user_id == user.id,
+                    Account.is_active == True
+                ).first()
+            if not mortgage:
+                mortgage = db.query(Account).filter(
+                    Account.linked_asset_id == prop.id,
+                    Account.user_id == user.id,
+                    Account.is_active == True
+                ).first()
 
             mortgage_balance = 0.0
             mortgage_id = None

@@ -102,7 +102,7 @@ def test_create_manual_account_invalid_linked_asset(client, auth_headers):
         "linked_asset_id": "nonexistent-asset-id"
     })
     assert res.status_code == 400
-    assert "Linked asset account not found" in res.json()["detail"]
+    assert "Linked account not found" in res.json()["detail"]
 
 
 def test_log_valuation_invalid_account(client, auth_headers):
@@ -111,3 +111,51 @@ def test_log_valuation_invalid_account(client, auth_headers):
         "new_balance": 50000.0
     })
     assert res.status_code == 404
+
+
+def test_bidirectional_account_linking(client, auth_headers):
+    # 1. Create a Debt Account first
+    res_debt = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Tesla Auto Loan",
+        "account_class": "liability",
+        "type": "loan",
+        "category_group": "Debt",
+        "initial_balance": 35000.0
+    })
+    assert res_debt.status_code == 201
+    debt_id = res_debt.json()["id"]
+
+    # 2. Create Asset Account linking to the Debt Account
+    res_asset = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Tesla Model Y",
+        "account_class": "asset",
+        "type": "investment",
+        "subtype": "other",
+        "category_group": "Other",
+        "initial_balance": 50000.0,
+        "linked_asset_id": debt_id
+    })
+    assert res_asset.status_code == 201
+    asset_id = res_asset.json()["id"]
+    assert res_asset.json()["linked_asset_id"] == debt_id
+
+    # 3. Verify Debt Account is now linked back to Asset Account
+    res_accounts = client.get("/api/accounts", headers=auth_headers)
+    assert res_accounts.status_code == 200
+    accounts_map = {a["id"]: a for a in res_accounts.json()}
+    assert accounts_map[debt_id]["linked_asset_id"] == asset_id
+    assert accounts_map[asset_id]["linked_asset_id"] == debt_id
+
+    # 4. Unlink via PUT update
+    res_update = client.put(f"/api/accounts/{asset_id}", headers=auth_headers, json={
+        "linked_asset_id": ""
+    })
+    assert res_update.status_code == 200
+    assert res_update.json()["linked_asset_id"] is None
+
+    # Verify both are now unlinked
+    res_accounts2 = client.get("/api/accounts", headers=auth_headers)
+    accounts_map2 = {a["id"]: a for a in res_accounts2.json()}
+    assert accounts_map2[debt_id]["linked_asset_id"] is None
+    assert accounts_map2[asset_id]["linked_asset_id"] is None
+
