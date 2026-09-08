@@ -19,6 +19,8 @@ test.describe('Suite 6: Modals & Actions', () => {
 
     const modals = new Modals(page);
     await expect(modals.editNameInput).not.toBeEmpty();
+    await expect(modals.editTypeSelect).toBeVisible();
+    await expect(modals.editTypeSelect).not.toBeEmpty();
     await expect(modals.editTargetRateInput).not.toBeEmpty();
 
     // Close modal

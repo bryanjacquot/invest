@@ -469,7 +469,7 @@
         <div class="modal-header">
           <div>
             <h2 id="edit-acc-modal-title">Edit Account Settings</h2>
-            <p class="subtext">Configure category, target return rate, and properties.</p>
+            <p class="subtext">Configure target return rate and account properties.</p>
           </div>
           <button type="button" class="btn-close modal-close-btn">&times;</button>
         </div>
@@ -484,15 +484,38 @@
 
           <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
-              <label class="form-label" for="edit-acc-category">Category Group</label>
-              <select id="edit-acc-category" class="form-select">
-                <option value="Retirement">🛡️ Retirement (401k, 403b)</option>
-                <option value="Taxable Brokerage">📈 Taxable Brokerage</option>
-                <option value="IRAs">🪙 IRAs (Traditional, Roth)</option>
-                <option value="Emergency Savings">🚨 Emergency Savings</option>
-                <option value="Real Estate">🏡 Real Estate</option>
-                <option value="Debt">💳 Mortgages & Debt</option>
-                <option value="Other">📁 Other</option>
+              <label class="form-label" for="edit-acc-type">Account Type</label>
+              <select id="edit-acc-type" class="form-input custom-account-select" required>
+                <optgroup label="TAXABLE">
+                  <option value="Checking">Checking</option>
+                  <option value="Investment">Investment</option>
+                  <option value="Savings">Savings</option>
+                </optgroup>
+                <optgroup label="TAX-DEFERRED">
+                  <option value="401(k)">401(k)</option>
+                  <option value="403(b)">403(b)</option>
+                  <option value="457(b)">457(b)</option>
+                  <option value="IRA">IRA</option>
+                  <option value="IRA (Inherited)">IRA (Inherited)</option>
+                  <option value="Other PreTax">Other PreTax</option>
+                </optgroup>
+                <optgroup label="TAX-FREE">
+                  <option value="529">529</option>
+                  <option value="HSA">HSA</option>
+                  <option value="Roth 401(k)">Roth 401(k)</option>
+                  <option value="Roth 403(b)">Roth 403(b)</option>
+                  <option value="Roth 457(b)">Roth 457(b)</option>
+                  <option value="Roth IRA">Roth IRA</option>
+                  <option value="Roth IRA (Inherited)">Roth IRA (Inherited)</option>
+                </optgroup>
+                <optgroup label="REAL ESTATE & OTHER">
+                  <option value="Real Estate / Property">Real Estate / Property</option>
+                  <option value="Other Asset">Other Asset</option>
+                </optgroup>
+                <optgroup label="DEBT">
+                  <option value="Mortgage">Mortgage</option>
+                  <option value="Other">Other</option>
+                </optgroup>
               </select>
             </div>
 
@@ -504,7 +527,7 @@
 
           <div class="form-group">
             <label class="form-label" for="edit-acc-linked-account">Linked Asset / Debt Account</label>
-            <select id="edit-acc-linked-account" class="form-select">
+            <select id="edit-acc-linked-account" class="form-select form-input">
               <option value="">None (Unlinked / Standalone)</option>
             </select>
           </div>

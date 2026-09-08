@@ -117,7 +117,11 @@ export const MANUAL_ACCOUNT_TYPES = {
 
   // REAL-ESTATE, OTHER
   'Real Estate / Property': { type: 'REAL-ESTATE, OTHER', subtype: 'Real Estate / Property', category_group: 'Real Estate', defaultTarget: 4.0 },
-  'Other Asset': { type: 'REAL-ESTATE, OTHER', subtype: 'Other Asset', category_group: 'Other', defaultTarget: 5.0 }
+  'Other Asset': { type: 'REAL-ESTATE, OTHER', subtype: 'Other Asset', category_group: 'Other', defaultTarget: 5.0 },
+
+  // DEBT
+  'Mortgage': { type: 'DEBT', subtype: 'Mortgage', category_group: 'Debt', defaultTarget: 0.0 },
+  'Other': { type: 'DEBT', subtype: 'Other', category_group: 'Debt', defaultTarget: 0.0 }
 };
 
 // 2. Add Account Modal (3 Tabs)
@@ -284,7 +288,7 @@ export function populateLinkedAssetDropdowns() {
     accounts.filter(a => a.account_class === 'asset').forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = `${a.name} (${a.category_group} - ${formatCurrency(a.current_balance)})`;
+      opt.textContent = `${a.name} (${a.subtype || a.type} - ${formatCurrency(a.current_balance)})`;
       assetSelect.appendChild(opt);
     });
     if (currentVal) assetSelect.value = currentVal;
@@ -383,7 +387,7 @@ export function openEditAccountModal(accountId) {
 
   const idInput = document.getElementById('edit-acc-id');
   const nameInput = document.getElementById('edit-acc-name');
-  const catSelect = document.getElementById('edit-acc-category');
+  const typeSelect = document.getElementById('edit-acc-type');
   const targetInput = document.getElementById('edit-acc-target');
   const specsList = document.getElementById('edit-acc-specs-list');
   const errPill = document.getElementById('edit-acc-error');
@@ -391,10 +395,20 @@ export function openEditAccountModal(accountId) {
 
   if (idInput) idInput.value = account.id;
   if (nameInput) nameInput.value = account.name;
-  if (catSelect) catSelect.value = account.category_group || 'Other';
-  if (targetInput) targetInput.value = account.target_annual_return_rate || 7.0;
+  if (targetInput) targetInput.value = account.target_annual_return_rate ?? 7.0;
   if (errPill) errPill.classList.add('hidden');
   if (successPill) successPill.classList.add('hidden');
+
+  // Populate Account Type / Subtype Select
+  if (typeSelect) {
+    if (account.subtype && Array.from(typeSelect.options).some(o => o.value === account.subtype)) {
+      typeSelect.value = account.subtype;
+    } else if (account.type === 'DEBT') {
+      typeSelect.value = 'Mortgage';
+    } else {
+      typeSelect.value = 'Investment';
+    }
+  }
 
   // Populate Linked Account Dropdown in Edit Modal
   const linkedSelect = document.getElementById('edit-acc-linked-account');
@@ -407,7 +421,7 @@ export function openEditAccountModal(accountId) {
     compatible.forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
-      opt.textContent = `${a.name} (${a.category_group} - ${formatCurrency(a.current_balance)})`;
+      opt.textContent = `${a.name} (${a.subtype || a.type} - ${formatCurrency(a.current_balance)})`;
       linkedSelect.appendChild(opt);
     });
     linkedSelect.value = account.linked_asset_id || '';
@@ -464,11 +478,21 @@ export function openEditAccountModal(accountId) {
 }
 
 function setupEditAccountModal() {
+  const typeSelect = document.getElementById('edit-acc-type');
+  const targetInput = document.getElementById('edit-acc-target');
+  typeSelect?.addEventListener('change', () => {
+    const cfg = MANUAL_ACCOUNT_TYPES[typeSelect.value];
+    if (cfg && targetInput && cfg.defaultTarget !== undefined) {
+      targetInput.value = cfg.defaultTarget;
+    }
+  });
+
   document.getElementById('form-edit-account')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const accountId = document.getElementById('edit-acc-id').value;
     const name = document.getElementById('edit-acc-name').value.trim();
-    const categoryGroup = document.getElementById('edit-acc-category').value;
+    const selectedTypeKey = document.getElementById('edit-acc-type')?.value;
+    const typeConfig = MANUAL_ACCOUNT_TYPES[selectedTypeKey];
     const targetRate = parseFloat(document.getElementById('edit-acc-target').value);
     const linkedAssetId = document.getElementById('edit-acc-linked-account')?.value ?? undefined;
 
@@ -480,9 +504,13 @@ function setupEditAccountModal() {
     try {
       const payload = {
         name,
-        category_group: categoryGroup,
         target_annual_return_rate: targetRate
       };
+      if (typeConfig) {
+        payload.type = typeConfig.type;
+        payload.subtype = typeConfig.subtype;
+        payload.category_group = typeConfig.category_group;
+      }
       if (linkedAssetId !== undefined) {
         payload.linked_asset_id = linkedAssetId;
       }

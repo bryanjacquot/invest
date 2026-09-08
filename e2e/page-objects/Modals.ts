@@ -4,7 +4,8 @@ export class Modals {
   readonly page: Page;
   readonly editAccountModal: Locator;
   readonly editNameInput: Locator;
-  readonly editCategorySelect: Locator;
+  readonly editTypeSelect: Locator;
+  readonly editTargetRateInput: Locator;
   readonly editLinkedAccountSelect: Locator;
   readonly editSubmitBtn: Locator;
 
@@ -31,7 +32,7 @@ export class Modals {
     this.page = page;
     this.editAccountModal = page.locator('#modal-edit-account');
     this.editNameInput = page.locator('#edit-acc-name');
-    this.editCategorySelect = page.locator('#edit-acc-category');
+    this.editTypeSelect = page.locator('#edit-acc-type');
     this.editTargetRateInput = page.locator('#edit-acc-target');
     this.editLinkedAccountSelect = page.locator('#edit-acc-linked-account');
     this.editSubmitBtn = page.locator('#form-edit-account button[type="submit"]');
