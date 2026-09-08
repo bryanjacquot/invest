@@ -133,4 +133,36 @@ test.describe('Suite 6: Modals & Actions', () => {
     await modals.editAccountModal.locator('button:has-text("Cancel")').click();
     await expect(modals.editAccountModal).toBeHidden();
   });
+
+  test('MOD-04: Single account page displays cleaned up Account.type badge and debt subtype selector works', async ({ page }) => {
+    // 1. Open Add Account modal and check debt subtypes
+    const modals = new Modals(page);
+    const addAccountBtn = page.locator('#btn-sidebar-add-account');
+    await addAccountBtn.click();
+    await modals.tabDebt.click();
+
+    const debtSubtypeSelect = page.locator('#debt-account-subtype');
+    await expect(debtSubtypeSelect).toBeVisible();
+    await expect(debtSubtypeSelect.locator('option[value="Mortgage"]')).toHaveText('Mortgage');
+    await expect(debtSubtypeSelect.locator('option[value="Other"]')).toHaveText('Other');
+
+    // Create a Mortgage debt account
+    const debtName = `Mortgage Test ${Date.now()}`;
+    await modals.debtAccountNameInput.fill(debtName);
+    await debtSubtypeSelect.selectOption('Mortgage');
+    await modals.debtAccountBalanceInput.fill('400000');
+    await modals.debtSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Click on the newly created debt account in sidebar
+    const debtItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: debtName });
+    await debtItem.waitFor({ state: 'visible', timeout: 8000 });
+    await debtItem.click();
+
+    // 3. Verify single account header shows only the Account.subtype badge without clutter
+    const headerPill = page.locator('.account-detail-container .badge-pill.moderate').first();
+    await expect(headerPill).toBeVisible();
+    await expect(headerPill).toHaveText('Mortgage');
+  });
 });
+

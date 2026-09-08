@@ -1,6 +1,7 @@
 from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from fastapi import HTTPException, status
 
 from app.models import (
@@ -163,6 +164,10 @@ class ManualAssetService:
 
         if data.name is not None:
             account.name = data.name
+        if data.type is not None:
+            account.type = data.type
+        if data.subtype is not None:
+            account.subtype = data.subtype
         if data.category_group is not None:
             account.category_group = data.category_group
         if data.is_active is not None:
@@ -249,7 +254,12 @@ class ManualAssetService:
         """Compute real estate properties, linked mortgages, equity, and LTV ratios."""
         properties = db.query(Account).filter(
             Account.user_id == user.id,
-            Account.type == "real_estate",
+            or_(
+                Account.type == "REAL-ESTATE, OTHER",
+                Account.type == "real_estate",
+                Account.subtype == "Real Estate / Property",
+                Account.category_group == "Real Estate"
+            ),
             Account.account_class == "asset",
             Account.is_active == True
         ).all()

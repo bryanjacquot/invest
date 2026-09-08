@@ -100,14 +100,10 @@ export default {
             ${isSingle ? `
               <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h2 style="margin: 0;">${escapeHtml(this.singleAccount.name)}</h2>
-                <span class="badge-pill moderate">${escapeHtml(this.singleAccount.category_group)}</span>
+                <span class="badge-pill moderate">${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</span>
               </div>
               <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
                 <span>Institution: <strong>${escapeHtml(this.singleAccount.institution_name || 'Manual')}</strong></span>
-                <span style="margin: 0 0.5rem;">•</span>
-                <span>Source: <strong>${escapeHtml(this.singleAccount.source_type.toUpperCase())}</strong></span>
-                <span style="margin: 0 0.5rem;">•</span>
-                <span>Subtype: <strong>${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</strong></span>
               </div>
             ` : `
               <div style="display: flex; align-items: center; gap: 0.75rem;">

@@ -331,9 +331,19 @@
               <p class="subtext">Track mortgages, personal loans, or lines of credit</p>
             </div>
 
-            <div class="form-group">
-              <label for="debt-account-name">Account Name</label>
-              <input type="text" id="debt-account-name" class="form-input" placeholder="e.g. 30-Year Mortgage, Auto Loan, Student Loan" required>
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="debt-account-name">Account Name</label>
+                <input type="text" id="debt-account-name" class="form-input" placeholder="e.g. 30-Year Mortgage, Auto Loan, Student Loan" required>
+              </div>
+
+              <div class="form-group">
+                <label for="debt-account-subtype">Debt Subtype</label>
+                <select id="debt-account-subtype" class="form-input" required>
+                  <option value="Mortgage" selected>Mortgage</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
 
             <div class="grid-2col">

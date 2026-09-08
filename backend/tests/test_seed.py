@@ -30,11 +30,13 @@ def test_seed_demo_portfolio_endpoint(client, auth_headers):
     assert emergency_accs[0]["current_balance"] > 0
 
     # Check real estate property and mortgage
-    real_estate_accs = [a for a in accounts if a["type"] == "real_estate"]
+    real_estate_accs = [a for a in accounts if a["type"] == "REAL-ESTATE, OTHER"]
     assert len(real_estate_accs) == 1
     prop = real_estate_accs[0]
     assert prop["name"] == "Primary Residence (123 Maple St)"
+    assert prop["subtype"] == "Real Estate / Property"
 
-    mortgage_accs = [a for a in accounts if a["type"] == "loan"]
+    mortgage_accs = [a for a in accounts if a["type"] == "DEBT"]
     assert len(mortgage_accs) == 1
+    assert mortgage_accs[0]["subtype"] == "Mortgage"
     assert mortgage_accs[0]["linked_asset_id"] == prop["id"]

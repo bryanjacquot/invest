@@ -159,3 +159,84 @@ def test_bidirectional_account_linking(client, auth_headers):
     assert accounts_map2[debt_id]["linked_asset_id"] is None
     assert accounts_map2[asset_id]["linked_asset_id"] is None
 
+
+def test_standardized_account_types_and_subtypes(client, auth_headers):
+    # Test TAXABLE type with Checking subtype
+    res1 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "My Checking",
+        "account_class": "asset",
+        "type": "TAXABLE",
+        "subtype": "Checking",
+        "category_group": "Emergency Savings",
+        "initial_balance": 5000.0
+    })
+    assert res1.status_code == 201
+    assert res1.json()["type"] == "TAXABLE"
+    assert res1.json()["subtype"] == "Checking"
+
+    # Test TAX-DEFERRED type with 401(k) subtype
+    res2 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "My 401k",
+        "account_class": "asset",
+        "type": "TAX-DEFERRED",
+        "subtype": "401(k)",
+        "category_group": "Retirement",
+        "initial_balance": 150000.0
+    })
+    assert res2.status_code == 201
+    assert res2.json()["type"] == "TAX-DEFERRED"
+    assert res2.json()["subtype"] == "401(k)"
+
+    # Test TAX-FREE type with Roth IRA subtype
+    res3 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "My Roth IRA",
+        "account_class": "asset",
+        "type": "TAX-FREE",
+        "subtype": "Roth IRA",
+        "category_group": "IRAs",
+        "initial_balance": 40000.0
+    })
+    assert res3.status_code == 201
+    assert res3.json()["type"] == "TAX-FREE"
+    assert res3.json()["subtype"] == "Roth IRA"
+
+    # Test REAL-ESTATE, OTHER type with Real Estate / Property subtype
+    res4 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Vacation Cabin",
+        "account_class": "asset",
+        "type": "REAL-ESTATE, OTHER",
+        "subtype": "Real Estate / Property",
+        "category_group": "Real Estate",
+        "initial_balance": 350000.0
+    })
+    assert res4.status_code == 201
+    assert res4.json()["type"] == "REAL-ESTATE, OTHER"
+    assert res4.json()["subtype"] == "Real Estate / Property"
+
+    # Test DEBT type with Mortgage subtype
+    res5 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Cabin Mortgage",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Mortgage",
+        "category_group": "Debt",
+        "initial_balance": 200000.0,
+        "linked_asset_id": res4.json()["id"]
+    })
+    assert res5.status_code == 201
+    assert res5.json()["type"] == "DEBT"
+    assert res5.json()["subtype"] == "Mortgage"
+
+    # Test DEBT type with Other subtype
+    res6 = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Personal Loan",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Other",
+        "category_group": "Debt",
+        "initial_balance": 15000.0
+    })
+    assert res6.status_code == 201
+    assert res6.json()["type"] == "DEBT"
+    assert res6.json()["subtype"] == "Other"
+

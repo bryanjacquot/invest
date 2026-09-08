@@ -179,7 +179,38 @@ class PlaidService:
                     available = float(acc_data['balances'].get('available') or balance)
 
                     if not account:
-                        category = "Retirement" if "401k" in (acc_data.get('subtype') or '').lower() or "ira" in (acc_data.get('subtype') or '').lower() else "Taxable Brokerage"
+                        raw_sub = (acc_data.get('subtype') or '').lower()
+                        raw_type = (acc_data.get('type') or '').lower()
+
+                        if "401k" in raw_sub or "403b" in raw_sub or "457b" in raw_sub:
+                            std_type = "TAX-DEFERRED"
+                            std_subtype = "401(k)" if "401k" in raw_sub else ("403(b)" if "403b" in raw_sub else "457(b)")
+                            category = "Retirement"
+                        elif "roth" in raw_sub:
+                            std_type = "TAX-FREE"
+                            std_subtype = "Roth IRA" if "ira" in raw_sub else "Roth 401(k)"
+                            category = "IRAs" if "ira" in raw_sub else "Retirement"
+                        elif "ira" in raw_sub:
+                            std_type = "TAX-DEFERRED"
+                            std_subtype = "IRA"
+                            category = "IRAs"
+                        elif "hsa" in raw_sub:
+                            std_type = "TAX-FREE"
+                            std_subtype = "HSA"
+                            category = "Other"
+                        elif "529" in raw_sub:
+                            std_type = "TAX-FREE"
+                            std_subtype = "529"
+                            category = "Other"
+                        elif "savings" in raw_sub or raw_type == "depository":
+                            std_type = "TAXABLE"
+                            std_subtype = "Savings" if "savings" in raw_sub else "Checking"
+                            category = "Emergency Savings"
+                        else:
+                            std_type = "TAXABLE"
+                            std_subtype = "Investment"
+                            category = "Taxable Brokerage"
+
                         account = Account(
                             user_id=user.id,
                             institution_id=institution.id,
@@ -189,8 +220,8 @@ class PlaidService:
                             name=acc_data.get('name') or "Investment Account",
                             official_name=acc_data.get('official_name'),
                             mask=acc_data.get('mask'),
-                            type=acc_data.get('type') or "investment",
-                            subtype=acc_data.get('subtype') or "brokerage",
+                            type=std_type,
+                            subtype=std_subtype,
                             category_group=category,
                             currency=acc_data['balances'].get('iso_currency_code') or "USD",
                             is_active=True
@@ -285,8 +316,8 @@ class PlaidService:
                 account_class="asset",
                 plaid_account_id=f"acc-mock-{institution.id[:6]}",
                 name=f"{institution.name} Core Investment",
-                type="investment",
-                subtype="brokerage",
+                type="TAXABLE",
+                subtype="Investment",
                 category_group="Taxable Brokerage",
                 currency="USD",
                 is_active=True

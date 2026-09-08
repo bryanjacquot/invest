@@ -92,6 +92,8 @@ class ManualAccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
+    type: Optional[str] = None
+    subtype: Optional[str] = None
     category_group: Optional[str] = None
     is_active: Optional[bool] = None
     linked_asset_id: Optional[str] = None

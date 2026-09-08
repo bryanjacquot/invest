@@ -262,8 +262,8 @@ erDiagram
         string name
         string official_name
         string mask
-        string type "investment | real_estate | loan | depository | other"
-        string subtype "brokerage | 401k | mortgage | auto_loan | property | savings | etc"
+        string type "TAXABLE | TAX-DEFERRED | TAX-FREE | REAL-ESTATE, OTHER | DEBT"
+        string subtype "Checking | Investment | Savings | 401(k) | 403(b) | 457(b) | IRA | IRA (Inherited) | Other PreTax | 529 | HSA | Roth 401(k) | Roth 403(b) | Roth 457(b) | Roth IRA | Roth IRA (Inherited) | Real Estate / Property | Other Asset | Mortgage | Other"
         string category_group "Retirement | Taxable Brokerage | Emergency Savings | Real Estate | Debt | Other"
         string currency
         boolean is_active

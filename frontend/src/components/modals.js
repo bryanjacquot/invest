@@ -94,30 +94,30 @@ function setupAuthModal() {
 
 export const MANUAL_ACCOUNT_TYPES = {
   // TAXABLE
-  'Checking': { type: 'depository', subtype: 'checking', category_group: 'Emergency Savings', defaultTarget: 1.0 },
-  'Investment': { type: 'investment', subtype: 'brokerage', category_group: 'Taxable Brokerage', defaultTarget: 8.0 },
-  'Savings': { type: 'depository', subtype: 'savings', category_group: 'Emergency Savings', defaultTarget: 4.0 },
+  'Checking': { type: 'TAXABLE', subtype: 'Checking', category_group: 'Emergency Savings', defaultTarget: 1.0 },
+  'Investment': { type: 'TAXABLE', subtype: 'Investment', category_group: 'Taxable Brokerage', defaultTarget: 8.0 },
+  'Savings': { type: 'TAXABLE', subtype: 'Savings', category_group: 'Emergency Savings', defaultTarget: 4.0 },
 
   // TAX-DEFERRED
-  '401(k)': { type: 'investment', subtype: '401k', category_group: 'Retirement', defaultTarget: 7.0 },
-  '403(b)': { type: 'investment', subtype: '403b', category_group: 'Retirement', defaultTarget: 7.0 },
-  '457(b)': { type: 'investment', subtype: '457b', category_group: 'Retirement', defaultTarget: 7.0 },
-  'IRA': { type: 'investment', subtype: 'ira', category_group: 'IRAs', defaultTarget: 7.0 },
-  'IRA (Inherited)': { type: 'investment', subtype: 'ira', category_group: 'IRAs', defaultTarget: 7.0 },
-  'Other PreTax': { type: 'investment', subtype: 'pretax_other', category_group: 'Retirement', defaultTarget: 7.0 },
+  '401(k)': { type: 'TAX-DEFERRED', subtype: '401(k)', category_group: 'Retirement', defaultTarget: 7.0 },
+  '403(b)': { type: 'TAX-DEFERRED', subtype: '403(b)', category_group: 'Retirement', defaultTarget: 7.0 },
+  '457(b)': { type: 'TAX-DEFERRED', subtype: '457(b)', category_group: 'Retirement', defaultTarget: 7.0 },
+  'IRA': { type: 'TAX-DEFERRED', subtype: 'IRA', category_group: 'IRAs', defaultTarget: 7.0 },
+  'IRA (Inherited)': { type: 'TAX-DEFERRED', subtype: 'IRA (Inherited)', category_group: 'IRAs', defaultTarget: 7.0 },
+  'Other PreTax': { type: 'TAX-DEFERRED', subtype: 'Other PreTax', category_group: 'Retirement', defaultTarget: 7.0 },
 
   // TAX-FREE
-  '529': { type: 'investment', subtype: '529', category_group: 'Other', defaultTarget: 6.0 },
-  'HSA': { type: 'investment', subtype: 'hsa', category_group: 'Other', defaultTarget: 5.0 },
-  'Roth 401(k)': { type: 'investment', subtype: 'roth_401k', category_group: 'Retirement', defaultTarget: 7.0 },
-  'Roth 403(b)': { type: 'investment', subtype: 'roth_403b', category_group: 'Retirement', defaultTarget: 7.0 },
-  'Roth 457(b)': { type: 'investment', subtype: 'roth_457b', category_group: 'Retirement', defaultTarget: 7.0 },
-  'Roth IRA': { type: 'investment', subtype: 'roth_ira', category_group: 'IRAs', defaultTarget: 7.0 },
-  'Roth IRA (Inherited)': { type: 'investment', subtype: 'roth_ira', category_group: 'IRAs', defaultTarget: 7.0 },
+  '529': { type: 'TAX-FREE', subtype: '529', category_group: 'Other', defaultTarget: 6.0 },
+  'HSA': { type: 'TAX-FREE', subtype: 'HSA', category_group: 'Other', defaultTarget: 5.0 },
+  'Roth 401(k)': { type: 'TAX-FREE', subtype: 'Roth 401(k)', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth 403(b)': { type: 'TAX-FREE', subtype: 'Roth 403(b)', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth 457(b)': { type: 'TAX-FREE', subtype: 'Roth 457(b)', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth IRA': { type: 'TAX-FREE', subtype: 'Roth IRA', category_group: 'IRAs', defaultTarget: 7.0 },
+  'Roth IRA (Inherited)': { type: 'TAX-FREE', subtype: 'Roth IRA (Inherited)', category_group: 'IRAs', defaultTarget: 7.0 },
 
-  // REAL ESTATE & OTHER
-  'Real Estate / Property': { type: 'real_estate', subtype: 'property', category_group: 'Real Estate', defaultTarget: 4.0 },
-  'Other Asset': { type: 'investment', subtype: 'other', category_group: 'Other', defaultTarget: 5.0 }
+  // REAL-ESTATE, OTHER
+  'Real Estate / Property': { type: 'REAL-ESTATE, OTHER', subtype: 'Real Estate / Property', category_group: 'Real Estate', defaultTarget: 4.0 },
+  'Other Asset': { type: 'REAL-ESTATE, OTHER', subtype: 'Other Asset', category_group: 'Other', defaultTarget: 5.0 }
 };
 
 // 2. Add Account Modal (3 Tabs)
@@ -171,8 +171,8 @@ function setupAddAccountModal() {
     const linkedDebtId = document.getElementById('manual-account-linked-debt')?.value || null;
 
     const typeConfig = MANUAL_ACCOUNT_TYPES[typeKey] || {
-      type: 'investment',
-      subtype: 'brokerage',
+      type: 'TAXABLE',
+      subtype: typeKey,
       category_group: 'Taxable Brokerage'
     };
 
@@ -203,6 +203,7 @@ function setupAddAccountModal() {
   document.getElementById('form-add-debt-account')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('debt-account-name')?.value.trim();
+    const subtype = document.getElementById('debt-account-subtype')?.value || 'Mortgage';
     const balance = parseFloat(document.getElementById('debt-account-balance')?.value) || 0;
     const linkedAssetId = document.getElementById('debt-account-linked-asset')?.value || null;
     const interest = parseFloat(document.getElementById('debt-account-interest')?.value) || null;
@@ -213,8 +214,8 @@ function setupAddAccountModal() {
         method: 'POST',
         body: JSON.stringify({
           name,
-          type: 'loan',
-          subtype: 'mortgage',
+          type: 'DEBT',
+          subtype: subtype,
           category_group: 'Debt',
           account_class: 'liability',
           initial_balance: balance,
@@ -266,7 +267,7 @@ export function populateLinkedAssetDropdowns() {
   if (debtSelect) {
     const currentVal = debtSelect.value;
     debtSelect.innerHTML = '<option value="">None (Unencumbered / Standalone)</option>';
-    accounts.filter(a => a.account_class === 'liability' || a.type === 'loan').forEach(a => {
+    accounts.filter(a => a.account_class === 'liability' || a.type === 'DEBT' || a.type === 'loan').forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
       opt.textContent = `${a.name} (${formatCurrency(a.current_balance)})`;
@@ -401,7 +402,7 @@ export function openEditAccountModal(accountId) {
     linkedSelect.innerHTML = '<option value="">None (Unlinked / Standalone)</option>';
     const isAsset = account.account_class === 'asset';
     const compatible = (state.accounts || []).filter(a =>
-      a.id !== account.id && (isAsset ? (a.account_class === 'liability' || a.type === 'loan') : (a.account_class === 'asset'))
+      a.id !== account.id && (isAsset ? (a.account_class === 'liability' || a.type === 'DEBT' || a.type === 'loan') : (a.account_class === 'asset'))
     );
     compatible.forEach(a => {
       const opt = document.createElement('option');
@@ -419,12 +420,16 @@ export function openEditAccountModal(accountId) {
         <span class="overview-stat-val" style="font-family: monospace; font-size: 0.75rem;">${account.id}</span>
       </div>
       <div class="overview-stat-row">
-        <span class="overview-stat-label">Institution</span>
-        <span class="overview-stat-val">${escapeHtml(account.institution_name || 'Manual')}</span>
+        <span class="overview-stat-label">Type</span>
+        <span class="overview-stat-val"><strong>${escapeHtml(account.type || 'TAXABLE')}</strong></span>
       </div>
       <div class="overview-stat-row">
-        <span class="overview-stat-label">Source / Subtype</span>
-        <span class="overview-stat-val">${escapeHtml(account.source_type.toUpperCase())} (${escapeHtml(account.subtype || account.type)})</span>
+        <span class="overview-stat-label">Subtype</span>
+        <span class="overview-stat-val">${escapeHtml(account.subtype || account.type)}</span>
+      </div>
+      <div class="overview-stat-row">
+        <span class="overview-stat-label">Institution</span>
+        <span class="overview-stat-val">${escapeHtml(account.institution_name || 'Manual')}</span>
       </div>
       <div class="overview-stat-row">
         <span class="overview-stat-label">Account Class</span>

@@ -91,24 +91,24 @@ class AnalyticsEngine:
             val_now_total += curr_val * multiplier
 
             # Category allocation
-            if acc.account_class == "liability" or acc.category_group in ["Debt", "Mortgages", "Mortgage"]:
+            if acc.account_class == "liability" or acc.type == "DEBT" or acc.category_group in ["Debt", "Mortgages", "Mortgage"]:
                 total_liabilities += curr_val
                 total_mortgages += curr_val
-            elif acc.category_group == "Emergency Savings":
+            elif (acc.type == "TAXABLE" and acc.subtype in ["Savings", "Checking", "savings", "checking"]) or acc.category_group == "Emergency Savings":
                 total_emergency_savings += curr_val
                 total_other_assets += curr_val
-            elif acc.type == "real_estate" or acc.category_group == "Real Estate":
+            elif acc.type in ["REAL-ESTATE, OTHER", "real_estate"] or acc.category_group == "Real Estate":
                 total_real_estate += curr_val
-            elif acc.category_group == "Retirement" or acc.subtype in ["401k", "403b"]:
+            elif acc.type in ["TAX-DEFERRED", "TAX-DEFFERRED"] or acc.category_group == "Retirement" or acc.subtype in ["401(k)", "401k", "403(b)", "403b", "457(b)", "457b"]:
                 total_retirement += curr_val
                 total_invested += curr_val
-            elif acc.category_group == "Taxable Brokerage" or acc.subtype == "brokerage":
+            elif (acc.type == "TAXABLE" and acc.subtype in ["Investment", "brokerage"]) or acc.category_group == "Taxable Brokerage":
                 total_taxable_brokerage += curr_val
                 total_invested += curr_val
-            elif acc.category_group in ["IRAs", "IRA"] or acc.subtype in ["ira", "roth"]:
+            elif acc.type == "TAX-FREE" or acc.category_group in ["IRAs", "IRA"] or (acc.subtype and any(k in acc.subtype.lower() for k in ["ira", "529", "hsa", "roth"])):
                 total_iras += curr_val
                 total_invested += curr_val
-            elif acc.type == "investment":
+            elif acc.type in ["investment", "TAXABLE"]:
                 total_invested += curr_val
             else:
                 total_other_assets += curr_val
