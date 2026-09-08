@@ -123,7 +123,7 @@ invest/
   - **Real Estate & Loan Cards:** Property valuation cards displaying linked mortgage, equity progress bar, and LTV ratio.
   - **Modal Dialogs:**
     - Authentication Modal (Login / Register)
-    - Add Account Modal (Plaid / Manual Asset / Loan)
+    - Add Account Modal (3 Tabs: Plaid Connect, Categorized Manual Account Picker, Manual Debt Account)
     - Edit Account Dialog (Target return rate, subtype, category, and metadata)
     - Log Valuation / Loan Payment Modal
     - Database Backup & Restore Modal

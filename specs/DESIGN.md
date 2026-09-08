@@ -74,7 +74,7 @@ flowchart TD
      - **Overview Dashboard (`/overview`):** Net worth KPIs, category distribution cards, and 5-year timeline.
      - **Unified Account & Performance (`/account`):** Single-account, multi-account, and blended portfolio performance, target curve comparison ($ and %), Chart/Table toggles, Holdings breakdown & asset allocation donut, and "Edit Account" configuration dialog.
      - **Real Estate & Loans (`/real-estate`):** Property cards, linked mortgage equity calculations, and LTV gauges.
-     - **Modals:** Authentication, Unified Add Account, Edit Account settings, Valuation & Loan Payment loggers, Database Backup & Restore.
+     - **Modals:** Authentication, Unified Add Account (3 tabs: Plaid Connect, Categorized Manual Account Picker, Manual Debt Account), Edit Account settings, Valuation & Loan Payment loggers, Database Backup & Restore.
 
 2. **Backend API Container (`invest-api` — Port `3011`):**
    - High-performance **Python (FastAPI)** application.

@@ -14,7 +14,7 @@ export default {
             <h2>Real Estate & Collateralized Debt</h2>
             <p class="subtext">Track physical properties, market valuations, attached mortgages, and net equity.</p>
           </div>
-          <button class="btn btn-primary" onclick="window.dispatchEvent(new CustomEvent('invest:open-add-account', { detail: { tab: 'asset' } }))">
+          <button class="btn btn-primary" onclick="window.dispatchEvent(new CustomEvent('invest:open-add-account', { detail: { tab: 'manual' } }))">
             + Add Property / Loan
           </button>
         </div>

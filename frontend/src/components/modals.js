@@ -92,6 +92,34 @@ function setupAuthModal() {
   });
 }
 
+export const MANUAL_ACCOUNT_TYPES = {
+  // TAXABLE
+  'Checking': { type: 'depository', subtype: 'checking', category_group: 'Emergency Savings', defaultTarget: 1.0 },
+  'Investment': { type: 'investment', subtype: 'brokerage', category_group: 'Taxable Brokerage', defaultTarget: 8.0 },
+  'Savings': { type: 'depository', subtype: 'savings', category_group: 'Emergency Savings', defaultTarget: 4.0 },
+
+  // TAX-DEFERRED
+  '401(k)': { type: 'investment', subtype: '401k', category_group: 'Retirement', defaultTarget: 7.0 },
+  '403(b)': { type: 'investment', subtype: '403b', category_group: 'Retirement', defaultTarget: 7.0 },
+  '457(b)': { type: 'investment', subtype: '457b', category_group: 'Retirement', defaultTarget: 7.0 },
+  'IRA': { type: 'investment', subtype: 'ira', category_group: 'IRAs', defaultTarget: 7.0 },
+  'IRA (Inherited)': { type: 'investment', subtype: 'ira', category_group: 'IRAs', defaultTarget: 7.0 },
+  'Other PreTax': { type: 'investment', subtype: 'pretax_other', category_group: 'Retirement', defaultTarget: 7.0 },
+
+  // TAX-FREE
+  '529': { type: 'investment', subtype: '529', category_group: 'Other', defaultTarget: 6.0 },
+  'HSA': { type: 'investment', subtype: 'hsa', category_group: 'Other', defaultTarget: 5.0 },
+  'Roth 401(k)': { type: 'investment', subtype: 'roth_401k', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth 403(b)': { type: 'investment', subtype: 'roth_403b', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth 457(b)': { type: 'investment', subtype: 'roth_457b', category_group: 'Retirement', defaultTarget: 7.0 },
+  'Roth IRA': { type: 'investment', subtype: 'roth_ira', category_group: 'IRAs', defaultTarget: 7.0 },
+  'Roth IRA (Inherited)': { type: 'investment', subtype: 'roth_ira', category_group: 'IRAs', defaultTarget: 7.0 },
+
+  // REAL ESTATE & OTHER
+  'Real Estate / Property': { type: 'real_estate', subtype: 'property', category_group: 'Real Estate', defaultTarget: 4.0 },
+  'Other Asset': { type: 'investment', subtype: 'other', category_group: 'Other', defaultTarget: 5.0 }
+};
+
 // 2. Add Account Modal (3 Tabs)
 export function openAddAccountModal(activeTab = 'plaid') {
   const modal = document.getElementById('modal-add-account');
@@ -102,73 +130,79 @@ export function openAddAccountModal(activeTab = 'plaid') {
 }
 
 function switchAddAccountTab(tabName) {
-  document.querySelectorAll('#modal-add-account .sub-nav-tabs .tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+  let normalizedTab = tabName;
+  if (tabName === 'asset') normalizedTab = 'manual';
+  if (tabName === 'loan') normalizedTab = 'debt';
+
+  document.querySelectorAll('#modal-add-account nav .tab-btn').forEach(btn => {
+    const btnTab = btn.getAttribute('data-tab');
+    btn.classList.toggle('active', btnTab === normalizedTab);
   });
   document.querySelectorAll('#modal-add-account .modal-tab-content').forEach(c => {
-    c.classList.toggle('active', c.id === `add-tab-${tabName}`);
+    c.classList.toggle('active', c.id === `add-tab-${normalizedTab}`);
   });
 }
 
 function setupAddAccountModal() {
-  document.querySelectorAll('#modal-add-account .sub-nav-tabs .tab-btn').forEach(btn => {
+  document.querySelectorAll('#modal-add-account nav .tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       switchAddAccountTab(btn.getAttribute('data-tab'));
     });
   });
 
-  // Manual Asset Form
-  document.getElementById('form-manual-asset')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('manual-asset-name').value.trim();
-    const category = document.getElementById('manual-asset-category').value;
-    const balance = parseFloat(document.getElementById('manual-asset-balance').value) || 0;
-    const target = parseFloat(document.getElementById('manual-asset-target').value) || 7.0;
-    const address = document.getElementById('manual-asset-address')?.value.trim() || null;
-    const notes = document.getElementById('manual-asset-notes')?.value.trim() || null;
+  // Account Type Dropdown Change Handler
+  const accountTypeSelect = document.getElementById('manual-account-type');
+  const accountTargetInput = document.getElementById('manual-account-target');
+  accountTypeSelect?.addEventListener('change', () => {
+    const selected = MANUAL_ACCOUNT_TYPES[accountTypeSelect.value];
+    if (selected && accountTargetInput) {
+      accountTargetInput.value = selected.defaultTarget;
+    }
+  });
 
-    let subtype = 'other';
-    let type = 'investment';
-    if (category === 'Real Estate') { subtype = 'property'; type = 'real_estate'; }
-    else if (category === 'Retirement') { subtype = '401k'; }
-    else if (category === 'IRAs') { subtype = 'ira'; }
-    else if (category === 'Emergency Savings') { subtype = 'savings'; type = 'depository'; }
-    else if (category === 'Taxable Brokerage') { subtype = 'brokerage'; }
+  // Tab 2: Manual Asset / Account Form
+  document.getElementById('form-add-manual-account')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const typeKey = document.getElementById('manual-account-type')?.value || 'Investment';
+    const name = document.getElementById('manual-account-name')?.value.trim();
+    const balance = parseFloat(document.getElementById('manual-account-balance')?.value) || 0;
+    const target = parseFloat(document.getElementById('manual-account-target')?.value) || 7.0;
+
+    const typeConfig = MANUAL_ACCOUNT_TYPES[typeKey] || {
+      type: 'investment',
+      subtype: 'brokerage',
+      category_group: 'Taxable Brokerage'
+    };
 
     try {
       await apiFetch('/accounts/manual', {
         method: 'POST',
         body: JSON.stringify({
           name,
-          type,
-          subtype,
-          category_group: category,
+          type: typeConfig.type,
+          subtype: typeConfig.subtype,
+          category_group: typeConfig.category_group,
           account_class: 'asset',
           initial_balance: balance,
-          target_annual_return_rate: target,
-          property_address: address,
-          notes
+          target_annual_return_rate: target
         })
       });
 
       document.getElementById('modal-add-account')?.classList.add('hidden');
-      document.getElementById('form-manual-asset')?.reset();
+      document.getElementById('form-add-manual-account')?.reset();
       window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
     } catch (err) {
-      alert(`Error creating asset: ${err.message}`);
+      alert(`Error creating account: ${err.message}`);
     }
   });
 
-  // Manual Loan Form
-  document.getElementById('form-manual-loan')?.addEventListener('submit', async (e) => {
+  // Tab 3: Debt Account Form
+  document.getElementById('form-add-debt-account')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('manual-loan-name').value.trim();
-    const category = document.getElementById('manual-loan-category').value;
-    const balance = parseFloat(document.getElementById('manual-loan-balance').value) || 0;
-    const linkedAsset = document.getElementById('manual-loan-linked-asset')?.value || null;
-    const interest = parseFloat(document.getElementById('manual-loan-interest')?.value) || null;
-    const payment = parseFloat(document.getElementById('manual-loan-payment')?.value) || null;
-    const notes = document.getElementById('manual-loan-notes')?.value.trim() || null;
+    const name = document.getElementById('debt-account-name')?.value.trim();
+    const balance = parseFloat(document.getElementById('debt-account-balance')?.value) || 0;
+    const interest = parseFloat(document.getElementById('debt-account-interest')?.value) || null;
+    const payment = parseFloat(document.getElementById('debt-account-payment')?.value) || null;
 
     try {
       await apiFetch('/accounts/manual', {
@@ -177,30 +211,29 @@ function setupAddAccountModal() {
           name,
           type: 'loan',
           subtype: 'mortgage',
-          category_group: category,
+          category_group: 'Debt',
           account_class: 'liability',
           initial_balance: balance,
           target_annual_return_rate: 0.0,
-          linked_asset_id: linkedAsset,
-          interest_rate: interest,
-          monthly_payment: payment,
-          notes
+          manual_detail: {
+            interest_rate: interest,
+            monthly_payment: payment
+          }
         })
       });
 
       document.getElementById('modal-add-account')?.classList.add('hidden');
-      document.getElementById('form-manual-loan')?.reset();
+      document.getElementById('form-add-debt-account')?.reset();
       window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
     } catch (err) {
-      alert(`Error creating loan: ${err.message}`);
+      alert(`Error creating debt account: ${err.message}`);
     }
   });
 
-  // Plaid Mock Connect Form
-  document.getElementById('btn-connect-plaid-demo')?.addEventListener('click', async () => {
+  // Tab 1: Plaid Connect Handler
+  const connectPlaidHandler = async () => {
     try {
       await apiFetch('/plaid/link/token', { method: 'POST' });
-      // Exchange mock public token
       await apiFetch('/plaid/link/exchange', {
         method: 'POST',
         body: JSON.stringify({
@@ -209,12 +242,15 @@ function setupAddAccountModal() {
         })
       });
       document.getElementById('modal-add-account')?.classList.add('hidden');
-      alert('Plaid sandbox connection created successfully!');
+      alert('Plaid connection created successfully!');
       window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
     } catch (err) {
       alert(`Plaid connection failed: ${err.message}`);
     }
-  });
+  };
+
+  document.getElementById('btn-connect-plaid')?.addEventListener('click', connectPlaidHandler);
+  document.getElementById('btn-connect-plaid-demo')?.addEventListener('click', connectPlaidHandler);
 }
 
 export function populateLinkedAssetDropdowns() {

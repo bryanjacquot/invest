@@ -217,28 +217,27 @@
         <div class="modal-header">
           <div>
             <h2>Add New Account</h2>
-            <p class="subtext">Select an account type to connect or track</p>
           </div>
           <button type="button" class="btn-close modal-close-btn">&times;</button>
         </div>
 
-        <!-- 3-Mode Sub-Navigation Tabs -->
-        <nav class="sub-nav-tabs glass-card" style="margin-bottom: 1rem;">
+        <!-- 3-Mode Sub-Navigation Tabs Component -->
+        <nav class="modal-tabs" id="add-account-modal-tabs">
           <button type="button" class="tab-btn active" data-tab="plaid">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            <span>Connect with Plaid</span>
+            <span>Using Plaid</span>
           </button>
-          <button type="button" class="tab-btn" data-tab="asset">
+          <button type="button" class="tab-btn" data-tab="manual">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <span>Manual Asset</span>
+            <span>Manually</span>
           </button>
-          <button type="button" class="tab-btn" data-tab="loan">
+          <button type="button" class="tab-btn" data-tab="debt">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-            <span>Manual Loan</span>
+            <span>Debt Manually</span>
           </button>
         </nav>
 
-        <!-- TAB 1: Plaid Connect -->
+        <!-- TAB 1: Using Plaid -->
         <div id="add-tab-plaid" class="modal-tab-content active">
           <div class="glass-card" style="background: rgba(31, 41, 55, 0.4); text-align: center; padding: 2rem 1.5rem; margin-top: 0.5rem;">
             <div class="brand-icon" style="margin: 0 auto 1rem; width: 48px; height: 48px; font-size: 1.5rem;">🔗</div>
@@ -246,108 +245,110 @@
             <p class="subtext" style="max-width: 440px; margin: 0 auto 1.5rem;">
               Securely connect your institutional investment accounts, 401(k) plans, IRAs, or checking & savings from Vanguard, Fidelity, Schwab, Chase, and 12,000+ financial institutions.
             </p>
-            <button type="button" id="btn-connect-plaid-demo" class="btn btn-primary btn-glow btn-lg" style="margin: 0 auto;">
+            <button type="button" id="btn-connect-plaid" class="btn btn-primary btn-glow btn-lg" style="margin: 0 auto;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              <span>Connect Bank / Brokerage with Plaid</span>
+              <span>Connect with Plaid</span>
             </button>
           </div>
         </div>
 
-        <!-- TAB 2: Manual Asset Entry -->
-        <div id="add-tab-asset" class="modal-tab-content">
-          <form id="form-manual-asset" class="modal-form" style="margin-top: 0.5rem;">
+        <!-- TAB 2: Add account manually -->
+        <div id="add-tab-manual" class="modal-tab-content">
+          <form id="form-add-manual-account" class="modal-form" style="margin-top: 0.5rem;">
+            <div style="margin-bottom: 0.5rem;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">What type of account is this?</h3>
+              <p class="subtext">Select the category and account type to configure return expectations</p>
+            </div>
+
             <div class="form-group">
-              <label for="manual-asset-name">Asset Name</label>
-              <input type="text" id="manual-asset-name" class="form-input" placeholder="e.g. Primary Residence, Schwab Roth IRA, Rental Property, Tesla Model Y" required>
+              <label for="manual-account-type">Account Type</label>
+              <select id="manual-account-type" class="form-input custom-account-select" required>
+                <optgroup label="TAXABLE">
+                  <option value="Checking">Checking</option>
+                  <option value="Investment" selected>Investment</option>
+                  <option value="Savings">Savings</option>
+                </optgroup>
+                <optgroup label="TAX-DEFERRED">
+                  <option value="401(k)">401(k)</option>
+                  <option value="403(b)">403(b)</option>
+                  <option value="457(b)">457(b)</option>
+                  <option value="IRA">IRA</option>
+                  <option value="IRA (Inherited)">IRA (Inherited)</option>
+                  <option value="Other PreTax">Other PreTax</option>
+                </optgroup>
+                <optgroup label="TAX-FREE">
+                  <option value="529">529</option>
+                  <option value="HSA">HSA</option>
+                  <option value="Roth 401(k)">Roth 401(k)</option>
+                  <option value="Roth 403(b)">Roth 403(b)</option>
+                  <option value="Roth 457(b)">Roth 457(b)</option>
+                  <option value="Roth IRA">Roth IRA</option>
+                  <option value="Roth IRA (Inherited)">Roth IRA (Inherited)</option>
+                </optgroup>
+                <optgroup label="REAL ESTATE & OTHER">
+                  <option value="Real Estate / Property">Real Estate / Property</option>
+                  <option value="Other Asset">Other Asset</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="manual-account-name">Account Name</label>
+              <input type="text" id="manual-account-name" class="form-input" placeholder="e.g. Fidelity Brokerage, Primary Residence, Chase Savings" required>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="manual-asset-category">Category Group</label>
-                <select id="manual-asset-category" class="form-input">
-                  <option value="Real Estate">Real Estate</option>
-                  <option value="Retirement">Retirement</option>
-                  <option value="Taxable Brokerage">Taxable Brokerage</option>
-                  <option value="IRAs">IRAs</option>
-                  <option value="Emergency Savings">Emergency Savings</option>
-                  <option value="Other">Other Assets</option>
-                </select>
+                <label for="manual-account-balance">Current Balance ($)</label>
+                <input type="number" step="0.01" id="manual-account-balance" class="form-input" placeholder="0.00" required>
               </div>
 
               <div class="form-group">
-                <label for="manual-asset-balance">Current Market Value ($)</label>
-                <input type="number" step="0.01" id="manual-asset-balance" class="form-input" placeholder="0.00" required>
+                <label for="manual-account-target">Target Rate of Return (%)</label>
+                <input type="number" step="0.1" id="manual-account-target" class="form-input" value="7.0">
               </div>
-            </div>
-
-            <div class="grid-2col">
-              <div class="form-group">
-                <label for="manual-asset-target">Target Annual Return (%)</label>
-                <input type="number" step="0.1" id="manual-asset-target" class="form-input" value="4.0">
-              </div>
-
-              <div class="form-group">
-                <label for="manual-asset-address">Property Address (Optional)</label>
-                <input type="text" id="manual-asset-address" class="form-input" placeholder="Street, City, State, ZIP">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="manual-asset-notes">Notes / Details (Optional)</label>
-              <input type="text" id="manual-asset-notes" class="form-input" placeholder="Purchase details, year built, etc.">
             </div>
 
             <div class="form-actions">
               <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
-              <button type="submit" class="btn btn-primary btn-glow">Save Asset Account</button>
+              <button type="submit" class="btn btn-primary btn-glow">Save Account</button>
             </div>
           </form>
         </div>
 
-        <!-- TAB 3: Manual Loan Entry -->
-        <div id="add-tab-loan" class="modal-tab-content">
-          <form id="form-manual-loan" class="modal-form" style="margin-top: 0.5rem;">
+        <!-- TAB 3: Add debt account manually -->
+        <div id="add-tab-debt" class="modal-tab-content">
+          <form id="form-add-debt-account" class="modal-form" style="margin-top: 0.5rem;">
+            <div style="margin-bottom: 0.5rem;">
+              <h3 style="font-size: 1.1rem; margin-bottom: 0.25rem;">Add Debt Account</h3>
+              <p class="subtext">Track mortgages, personal loans, or lines of credit</p>
+            </div>
+
             <div class="form-group">
-              <label for="manual-loan-name">Loan / Mortgage Name</label>
-              <input type="text" id="manual-loan-name" class="form-input" placeholder="e.g. 30-Year Fixed Mortgage, Auto Loan, HELOC" required>
+              <label for="debt-account-name">Account Name</label>
+              <input type="text" id="debt-account-name" class="form-input" placeholder="e.g. 30-Year Mortgage, Auto Loan, Student Loan" required>
+            </div>
+
+            <div class="form-group">
+              <label for="debt-account-balance">Current Balance ($)</label>
+              <input type="number" step="0.01" id="debt-account-balance" class="form-input" placeholder="0.00" required>
             </div>
 
             <div class="grid-2col">
               <div class="form-group">
-                <label for="manual-loan-category">Category Group</label>
-                <select id="manual-loan-category" class="form-input">
-                  <option value="Debt">Mortgages & Debt</option>
-                </select>
+                <label for="debt-account-interest">Interest Rate (%)</label>
+                <input type="number" step="0.01" id="debt-account-interest" class="form-input" placeholder="e.g. 5.50">
               </div>
 
               <div class="form-group">
-                <label for="manual-loan-balance">Current Loan Balance ($)</label>
-                <input type="number" step="0.01" id="manual-loan-balance" class="form-input" placeholder="0.00" required>
+                <label for="debt-account-payment">Monthly Payment ($)</label>
+                <input type="number" step="0.01" id="debt-account-payment" class="form-input" placeholder="e.g. 1500.00">
               </div>
-            </div>
-
-            <div class="grid-2col">
-              <div class="form-group">
-                <label for="manual-loan-interest">Interest Rate (%)</label>
-                <input type="number" step="0.01" id="manual-loan-interest" class="form-input" placeholder="e.g. 3.75">
-              </div>
-
-              <div class="form-group">
-                <label for="manual-loan-linked-asset">Link to Collateral Asset</label>
-                <select id="manual-loan-linked-asset" class="form-input">
-                  <option value="">None (Unsecured / Standalone)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="manual-loan-payment">Monthly Payment ($)</label>
-              <input type="number" step="0.01" id="manual-loan-payment" class="form-input" placeholder="0.00">
             </div>
 
             <div class="form-actions">
               <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
-              <button type="submit" class="btn btn-primary btn-glow">Save Loan Account</button>
+              <button type="submit" class="btn btn-primary btn-glow">Save Debt Account</button>
             </div>
           </form>
         </div>
