@@ -1254,17 +1254,23 @@ select optgroup {
   box-shadow: 0 0 10px var(--primary-glow);
 }
 
+.holdings-layout-stacked,
 .holdings-layout-grid {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 1.5rem;
-  align-items: start;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1.5rem !important;
+  width: 100% !important;
 }
 
-@media (max-width: 1024px) {
-  .holdings-layout-grid {
-    grid-template-columns: 1fr;
-  }
+.holdings-layout-stacked > *,
+.holdings-layout-grid > * {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.donut-canvas-container {
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .form-actions {

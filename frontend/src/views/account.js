@@ -268,19 +268,7 @@ export default {
 
           <!-- SUBTAB 2: Holdings & Allocation -->
           <div id="subtab-content-holdings" class="tab-content ${activeSubTab === 'holdings' ? 'active' : ''}">
-            <div class="holdings-layout-grid">
-              <!-- Asset Allocation Donut Chart -->
-              <div class="glass-card chart-card">
-                <div class="chart-header">
-                  <h3>Asset Allocation</h3>
-                  <div id="blended-risk-badge" class="badge-pill moderate">Moderate Risk (5.2)</div>
-                </div>
-                <div class="canvas-container donut-canvas-container" style="position: relative; height: 260px;">
-                  <canvas id="accountAllocationChart"></canvas>
-                </div>
-                <div id="account-risks-container" class="account-risks-list" style="margin-top: 1.25rem;"></div>
-              </div>
-
+            <div class="holdings-layout-stacked holdings-layout-grid" style="display: flex !important; flex-direction: column !important; gap: 1.5rem !important; width: 100% !important;">
               <!-- Consolidated Holdings Table -->
               <div class="glass-card table-card">
                 <div class="table-header-flex">
@@ -309,6 +297,18 @@ export default {
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              <!-- Asset Allocation Donut Chart -->
+              <div class="glass-card chart-card">
+                <div class="chart-header">
+                  <h3>Asset Allocation</h3>
+                  <div id="blended-risk-badge" class="badge-pill moderate">Moderate Risk (5.2)</div>
+                </div>
+                <div class="canvas-container donut-canvas-container" style="position: relative; height: 280px; max-width: 480px; margin: 0 auto;">
+                  <canvas id="accountAllocationChart"></canvas>
+                </div>
+                <div id="account-risks-container" class="account-risks-list" style="margin-top: 1.25rem;"></div>
               </div>
             </div>
           </div>
