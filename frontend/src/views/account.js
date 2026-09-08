@@ -825,16 +825,19 @@ export default {
       const gain = h.unrealized_gain_loss || 0;
       const ret = h.unrealized_gain_loss_pct || 0;
       const isPositive = gain >= 0;
+      const price = h.institution_price ?? h.price ?? h.unit_price ?? (h.quantity ? h.institution_value / h.quantity : 0);
+      const primaryTitle = h.ticker_symbol || h.name || h.security_name || '—';
+      const secondaryTitle = (h.name && h.ticker_symbol && h.name !== h.ticker_symbol) ? h.name : (h.security_name || '');
 
       return `
         <tr>
           <td>
-            <strong>${escapeHtml(h.ticker_symbol || h.security_name)}</strong>
-            <div style="font-size:0.75rem; color:var(--text-dim);">${escapeHtml(h.security_name || '')}</div>
+            <strong>${escapeHtml(primaryTitle)}</strong>
+            ${secondaryTitle ? `<div style="font-size:0.75rem; color:var(--text-dim);">${escapeHtml(secondaryTitle)}</div>` : ''}
           </td>
-          <td><span class="badge-pill moderate">${escapeHtml(h.asset_class || h.asset_type || 'Equity')}</span></td>
+          <td><span class="badge-pill moderate">${escapeHtml(h.asset_type || h.asset_class || 'Equity')}</span></td>
           <td>${h.quantity ? h.quantity.toLocaleString(undefined, { maximumFractionDigits: 3 }) : '—'}</td>
-          <td>${formatCurrency(h.unit_price)}</td>
+          <td>${formatCurrency(price)}</td>
           <td><strong>${formatCurrency(h.institution_value)}</strong></td>
           <td class="${isPositive ? 'kpi-change positive' : 'kpi-change negative'}">
             ${isPositive ? '+' : ''}${formatCurrency(gain)}
@@ -857,7 +860,9 @@ export default {
 
     const filtered = this.allHoldings.filter(h =>
       (h.ticker_symbol && h.ticker_symbol.toLowerCase().includes(q)) ||
+      (h.name && h.name.toLowerCase().includes(q)) ||
       (h.security_name && h.security_name.toLowerCase().includes(q)) ||
+      (h.asset_type && h.asset_type.toLowerCase().includes(q)) ||
       (h.asset_class && h.asset_class.toLowerCase().includes(q))
     );
 
