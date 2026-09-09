@@ -12,7 +12,7 @@ export const state = {
   isAuthRegisterMode: false,
   sidebarOpen: localStorage.getItem('invest_sidebar_open') !== 'false',
   metricUnit: localStorage.getItem('invest_metric_unit') || 'pct',
-  activeRoute: '/overview',
+  activeRoute: '/account',
   subTab: 'performance',
   charts: {
     performance: null,

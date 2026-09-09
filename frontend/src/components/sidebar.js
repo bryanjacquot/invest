@@ -11,13 +11,6 @@ export function initSidebar() {
   document.getElementById('btn-toggle-sidebar')?.addEventListener('click', toggleSidebar);
   document.getElementById('sidebar-backdrop')?.addEventListener('click', closeSidebarMobile);
 
-  // Overview Navigation Button
-  document.getElementById('sidebar-nav-overview')?.addEventListener('click', () => {
-    state.selectedAccountIds.clear();
-    router.navigate('/overview');
-    closeSidebarMobile();
-  });
-
   // "All Accounts" Selector Row
   document.getElementById('sidebar-account-all')?.addEventListener('click', () => {
     state.selectedAccountIds.clear();
@@ -84,14 +77,7 @@ export function applySidebarState() {
 }
 
 export function renderSidebarState(path, params) {
-  // 1. Overview active state
-  const isOverview = path === '/overview' || path === '/';
-  document.getElementById('sidebar-nav-overview')?.classList.toggle('active', isOverview);
-
-  // 2. Real Estate active state
-  const isRealEstate = path === '/real-estate';
-
-  // 3. Account selection state
+  // 1. Account selection state
   const allRow = document.getElementById('sidebar-account-all');
   const idParam = params ? params.get('id') : null;
   const accountsParam = params ? params.get('accounts') : null;

@@ -6,7 +6,6 @@ import { apiFetch } from './api.js';
 import { router } from './router.js';
 
 // Views
-import overviewView from './views/overview.js';
 import accountView from './views/account.js';
 import realEstateView from './views/real_estate.js';
 
@@ -16,7 +15,6 @@ import { initHeader, updateUserDisplay } from './components/header.js';
 import { initModals, showAuthModal, populateLinkedAssetDropdowns } from './components/modals.js';
 
 // Register application routes
-router.register('/overview', overviewView);
 router.register('/account', accountView);
 router.register('/real-estate', realEstateView);
 
@@ -40,7 +38,7 @@ window.addEventListener('invest:navigate-account', (e) => {
 });
 
 window.addEventListener('invest:navigate-overview', () => {
-  router.navigate('/overview');
+  router.navigate('/account');
 });
 
 async function loadAccounts() {

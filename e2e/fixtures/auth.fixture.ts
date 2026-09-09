@@ -70,7 +70,7 @@ export const test = base.extend<AuthContext>({
         window.localStorage.setItem('invest_token', tok);
       }, token);
     }
-    await page.goto('/overview');
+    await page.goto('/account');
     await page.locator('#sidebar-accounts-list .sidebar-account-item').first().waitFor({ state: 'visible', timeout: 10000 });
     await use(page);
   }

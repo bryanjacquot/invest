@@ -52,8 +52,9 @@ class Router {
 
     // Normalize path aliases
     let normalizedPath = path;
-    if (normalizedPath === '' || normalizedPath === '/') {
-      normalizedPath = '/overview';
+    if (normalizedPath === '' || normalizedPath === '/' || normalizedPath === '/overview') {
+      normalizedPath = '/account';
+      window.history.replaceState(null, '', '/account' + (window.location.search || ''));
     }
 
     state.activeRoute = normalizedPath;
@@ -67,8 +68,9 @@ class Router {
     let viewModule = this.routes.get(normalizedPath);
     if (!viewModule) {
       // Default fallback
-      viewModule = this.routes.get('/overview');
-      normalizedPath = '/overview';
+      viewModule = this.routes.get('/account');
+      normalizedPath = '/account';
+      window.history.replaceState(null, '', '/account' + (window.location.search || ''));
     }
 
     // Call lifecycle hooks

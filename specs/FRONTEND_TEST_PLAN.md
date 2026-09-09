@@ -34,14 +34,12 @@ invest/
 │   ├── fixtures/
 │   │   └── auth.fixture.ts         # Pre-authenticated user sessions & automated demo seeding
 │   ├── page-objects/
-│   │   ├── SidebarComponent.ts     # Flat account list, All Accounts, selection highlights
-│   │   ├── OverviewPage.ts         # Net worth KPI cards, category navigation
+│   │   ├── SidebarComponent.ts     # Flat account list, All Accounts, selection highlights, brand logo
 │   │   ├── AccountPage.ts          # Performance, $ / % toggle, horizon buttons, Chart/Table, Holdings
 │   │   └── Modals.ts               # Edit Account modal dialog inputs & actions
 │   └── tests/
 │       ├── 01_auth.spec.ts         # App loading and user authentication
 │       ├── 02_sidebar_navigation.spec.ts # Navigation & flat selection highlights
-│       ├── 03_overview_view.spec.ts # Net worth metrics & card routing
 │       ├── 04_account_performance.spec.ts # Metrics, timeframes, and Chart/Table toggles
 │       ├── 05_account_holdings.spec.ts # Donut chart & holdings search filter
 │       └── 06_modals.spec.ts       # Edit account modal pre-filling and submission
@@ -59,7 +57,7 @@ invest/
 | :--- | :--- | :--- | :--- |
 | **AUTH-01** | Initial unauthenticated state | Open root `/` without token | Auth modal is visible; protected views are inaccessible |
 | **AUTH-02** | Invalid login attempt | Submit incorrect username/password | Displays error banner; modal remains open |
-| **AUTH-03** | Valid login & session store | Submit valid credentials | JWT stored in `localStorage`; user menu displays username; Overview loads |
+| **AUTH-03** | Valid login & session store | Submit valid credentials | JWT stored in `localStorage`; user menu displays username; default `/account` All Accounts loads |
 | **AUTH-04** | Logout workflow | Open user dropdown -> Click Sign Out | Token cleared from `localStorage`; auth modal reappears |
 
 ---
@@ -67,20 +65,10 @@ invest/
 ### Suite 2: Sidebar Navigation & Selection Highlights (`02_sidebar_navigation.spec.ts`)
 | Test ID | Scenario | Actions | Assertions |
 | :--- | :--- | :--- | :--- |
-| **NAV-01** | Overview menu click | Click "Overview" nav item | URL updates to `/overview`; Overview menu item has `.active` highlight |
+| **NAV-01** | Default landing & Brand logo click | Load app; click brand logo after navigating | URL defaults to `/account` with All Accounts active; brand logo click returns to `/account` |
 | **NAV-02** | Single account selection | Click an account in the flat list | URL updates to `/account?id=<id>`; account item has `.active` highlight; "All Accounts" is not highlighted |
 | **NAV-03** | "All Accounts" selection | Click "All Accounts" row | URL updates to `/account`; "All Accounts" has `.active` highlight; individual accounts lose highlight |
 | **NAV-04** | Mobile drawer toggle | Click hamburger toggle on viewport width < 1024px | Sidebar panel slides in; clicking backdrop dismisses sidebar |
-
----
-
-### Suite 3: Overview Page (`03_overview_view.spec.ts`)
-| Test ID | Scenario | Actions | Assertions |
-| :--- | :--- | :--- | :--- |
-| **OVR-01** | Net worth metrics rendering | Load `/overview` with demo portfolio | Displays Total Net Worth, Invested Assets, trailing period changes (1M, YTD, 1Y) |
-| **OVR-02** | Asset allocation progress bar | Inspect category distribution bar | Segment widths and legend values match portfolio balances |
-| **OVR-03** | Category card navigation | Click "Retirement" KPI card | Navigates to `/account` with Retirement accounts filtered |
-| **OVR-04** | Real Estate card navigation | Click "Real Estate" KPI card | Navigates to `/real-estate` |
 
 ---
 

@@ -5,10 +5,9 @@
 This specification outlines the modularization and routing architecture for the InvestTracker frontend. The goal is to transform the existing monolithic single-file client logic (`app.js`) into a clean, modular ES6-module structure with dedicated view modules and full URL routing with query parameters.
 
 ### Key Goals
-1. **Dedicated View Source Files**: Each major section of the application has its own modular source file under `frontend/src/views/` (`overview.js`, `account.js`, `real_estate.js`).
+1. **Dedicated View Source Files**: Each major section of the application has its own modular source file under `frontend/src/views/` (`account.js`, `real_estate.js`).
 2. **Simplified, Unified View Routing & Bookmarkable URLs**: Every view and selection state corresponds to a clean URL path and query parameters:
-   - `/overview` (Default route): High-level portfolio summary & category KPI cards with interactive drill-down.
-   - `/account`: Consolidated Account & Performance dashboard handling single account (`?id=<account_id>`), multi-account (`?accounts=id1,id2`), or blended portfolio (All Accounts). Features Actual vs. Target performance ($ vs. % metrics), timeframe selectors (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`), Chart/Table toggle, Holdings & Asset Allocation donut, and "Edit Account" configuration dialog.
+   - `/account` (Default route & landing page): Consolidated Account & Performance dashboard handling single account (`?id=<account_id>`), multi-account (`?accounts=id1,id2`), or blended portfolio (All Accounts). When loaded without parameters, acts as the primary portfolio overview. Features Actual vs. Target performance ($ vs. % metrics), timeframe selectors (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`), Chart/Table toggle, Holdings & Asset Allocation donut, and "Edit Account" configuration dialog.
    - `/real-estate`: Dedicated real estate property and mortgage equity dashboard.
 3. **Flat Highlighted Sidebar**: Clean flat account list with active selection highlighting (no noisy checkboxes), supporting single-click navigation and multi-account selection (Meta/Ctrl/Shift + Click) alongside the top-level "🌟 All Accounts" row.
 4. **Vanilla ES6 Modules**: Zero build step required (native browser ES modules `<script type="module" src="app.js"></script>`) maintaining high performance, instant reloads, and ease of deployment.
@@ -34,8 +33,7 @@ frontend/
     │   ├── sidebar.js             # Collapsible left navigation panel, flat accounts list with active selection highlight
     │   └── modals.js              # Modal handlers: Auth, Unified Add Account, Edit Account dialog, Valuation Update, Settings/Backup
     ├── views/
-    │   ├── overview.js            # Route: / or /overview — Net worth KPI cards, Category breakdown, and timeline chart
-    │   ├── account.js             # Route: /account — Unified Performance, Target Curves, Holdings & Risk Allocation
+    │   ├── account.js             # Route: /account (Default) — Unified Performance, Target Curves, Holdings & Risk Allocation (All Accounts or single/multi-account)
     │   └── real_estate.js         # Route: /real-estate — Property cards, equity gauges, loan-to-value (LTV) ratios
     └── utils/
         ├── formatters.js          # Currency, percentage, and date formatting utilities
@@ -50,8 +48,7 @@ frontend/
 
 | Route Path | View Module | URL Query Parameters | Description |
 | :--- | :--- | :--- | :--- |
-| `/` or `/overview` | `views/overview.js` | *None* | Default dashboard landing page with summary KPI panels and portfolio timeline. |
-| `/account` | `views/account.js` | `id` (Single account UUID, e.g. `?id=93f3cf72-...`)<br>`accounts` (Comma-separated account IDs for multi-select)<br>`unit` (`pct` or `dollar`)<br>`timeframe` (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`)<br>`tab` (`performance`, `holdings`)<br>`search` (Holdings search query) | Consolidated account & performance view for single, multi, or blended accounts. Includes metric toggles (% vs $), horizon buttons, Chart vs Table toggle, Holdings allocation donut, and "Edit Account" modal action. |
+| `/` or `/account` | `views/account.js` | `id` (Single account UUID, e.g. `?id=93f3cf72-...`)<br>`accounts` (Comma-separated account IDs for multi-select)<br>`unit` (`pct` or `dollar`)<br>`timeframe` (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`)<br>`tab` (`performance`, `holdings`)<br>`search` (Holdings search query) | Default landing view and consolidated account & performance view for single, multi, or blended accounts. Includes metric toggles (% vs $), horizon buttons, Chart vs Table toggle, Holdings allocation donut, and "Edit Account" modal action. Legacy `/overview` automatically redirects to `/account`. |
 | `/real-estate` | `views/real_estate.js` | `id` (Optional property account ID to highlight/filter) | Physical property assets, market valuations, attached mortgages, and net equity tracking. |
 
 ### 3.2 URL Synchronization Workflow
@@ -100,7 +97,7 @@ export default {
 ## 5. Local Development Server (`dev_server.py`)
 
 To enable seamless client-side SPA routing during local development without requiring Docker or Nginx:
-- A lightweight Python HTTP server (`dev_server.py`) serves static files from `frontend/src/` and redirects all non-file route requests (`/overview`, `/account`, `/real-estate`) back to `index.html`.
+- A lightweight Python HTTP server (`dev_server.py`) serves static files from `frontend/src/` and redirects all non-file route requests (`/account`, `/real-estate`, `/overview`) back to `index.html`.
 - `run_local.sh` launches `dev_server.py` on port `3010`.
 
 ---
@@ -109,7 +106,7 @@ To enable seamless client-side SPA routing during local development without requ
 
 1. **Architecture & Modularization**: Completed
    - Core: `state.js`, `api.js`, `formatters.js`, `router.js`.
-   - Views: `views/overview.js`, `views/account.js`, `views/real_estate.js`.
+   - Views: `views/account.js` (default), `views/real_estate.js`.
    - Components: `components/sidebar.js`, `components/header.js`, `components/modals.js`.
 2. **Simplified Navigation**: Completed
    - Flat accounts list in sidebar with selection highlights (no checkboxes).

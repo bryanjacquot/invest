@@ -2,11 +2,19 @@ import { test, expect } from '../fixtures/auth.fixture';
 import { SidebarComponent } from '../page-objects/SidebarComponent';
 
 test.describe('Suite 2: Sidebar Navigation & Selection Highlights', () => {
-  test('NAV-01: Click Overview navigates and highlights Overview', async ({ page }) => {
+  test('NAV-01: Defaults to Account view with All Accounts highlighted, brand logo navigates to /account', async ({ page }) => {
     const sidebar = new SidebarComponent(page);
-    await sidebar.clickOverview();
-    await expect(page).toHaveURL(/\/overview/);
-    await expect(sidebar.overviewBtn).toHaveClass(/active/);
+    await expect(page).toHaveURL(/\/account/);
+    await sidebar.expectAllAccountsActive(true);
+
+    const firstAccount = page.locator('#sidebar-accounts-list .sidebar-account-item').first();
+    await firstAccount.waitFor({ state: 'visible', timeout: 8000 });
+    await firstAccount.click();
+    await expect(page).toHaveURL(/\/account\?id=/);
+
+    await sidebar.clickBrandLogo();
+    await expect(page).toHaveURL(/\/account(?!\?id=)/);
+    await sidebar.expectAllAccountsActive(true);
   });
 
   test('NAV-02: Click single account highlights only that account without checkboxes', async ({ page }) => {

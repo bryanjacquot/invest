@@ -99,7 +99,7 @@ export default {
           <div>
             ${isSingle ? `
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <h2 style="margin: 0;">${escapeHtml(this.singleAccount.name)}</h2>
+                <h2 style="margin: 0;" id="account-view-title">${escapeHtml(this.singleAccount.name)}</h2>
                 <span class="badge-pill moderate">${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</span>
               </div>
               <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
@@ -107,7 +107,7 @@ export default {
               </div>
             ` : `
               <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <h2 style="margin: 0;">${isAll ? 'All Accounts' : `${this.selectedAccountIds.length} Accounts Selected`}</h2>
+                <h2 style="margin: 0;" id="account-view-title">${isAll ? 'All Accounts' : `${this.selectedAccountIds.length} Accounts Selected`}</h2>
                 <span class="badge-pill moderate">${isAll ? 'Blended Portfolio' : 'Custom Selection'}</span>
               </div>
               <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">

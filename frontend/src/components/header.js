@@ -6,9 +6,9 @@ import { apiFetch } from '../api.js';
 import { router } from '../router.js';
 
 export function initHeader() {
-  // Brand click -> navigate to /overview
+  // Brand click -> navigate to /account
   document.getElementById('brand-logo-btn')?.addEventListener('click', () => {
-    router.navigate('/overview');
+    router.navigate('/account');
   });
 
   // Seed Demo Portfolio Button

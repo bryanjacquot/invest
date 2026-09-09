@@ -2,21 +2,21 @@ import { Page, Locator, expect } from '@playwright/test';
 
 export class SidebarComponent {
   readonly page: Page;
-  readonly overviewBtn: Locator;
+  readonly brandLogoBtn: Locator;
   readonly allAccountsRow: Locator;
   readonly accountsList: Locator;
   readonly addAccountBtn: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.overviewBtn = page.locator('#sidebar-nav-overview');
+    this.brandLogoBtn = page.locator('#brand-logo-btn');
     this.allAccountsRow = page.locator('#sidebar-account-all');
     this.accountsList = page.locator('#sidebar-accounts-list');
     this.addAccountBtn = page.locator('#btn-sidebar-add-account');
   }
 
-  async clickOverview() {
-    await this.overviewBtn.click();
+  async clickBrandLogo() {
+    await this.brandLogoBtn.click();
   }
 
   async clickAllAccounts() {

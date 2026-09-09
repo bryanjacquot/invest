@@ -16,7 +16,7 @@ A self-hosted personal finance intelligence system running in Docker containers 
 ## Features
 
 1. **Net Worth & Balance Sheet:** Real-time summary and multi-year historical tracking combining liquid investments, emergency reserves, real estate, and liabilities.
-2. **Modular SPA Views:** Clean 3-view architecture with dedicated controllers for **Overview** (`/overview`), **Unified Account & Performance** (`/account`), and **Real Estate & Loans** (`/real-estate`).
+2. **Modular SPA Views:** Clean 2-view architecture with dedicated controllers for **Unified Account & Performance** (`/account` — default landing view with "All Accounts" blended overview) and **Real Estate & Loans** (`/real-estate`). Legacy `/overview` routes seamlessly redirect to `/account`.
 3. **Flat Sidebar Navigation:** Clean account list with active selection highlighting (no checkboxes), supporting single-click navigation, multi-account selection (Meta/Ctrl + Click), and "🌟 All Accounts" blended portfolio view.
 4. **Multi-Timeframe Performance Analytics:** TWR return calculations for `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime` intervals with instant conversion between `%` return and `$` gain, plus dual interactive line chart and comparative table formats.
 5. **Target Return Rate Comparison:** Compares actual performance against compounded target annual rates per account with ahead/behind metrics and inline "Edit Account" configuration dialog.
