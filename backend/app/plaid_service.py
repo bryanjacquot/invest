@@ -43,22 +43,35 @@ def decrypt_token(encrypted_token: str) -> str:
 
 
 def is_plaid_configured() -> bool:
-    """Check if valid Plaid API keys are configured."""
-    return bool(settings.PLAID_CLIENT_ID and settings.PLAID_SECRET)
+    """Check if valid Plaid API keys are configured via environment."""
+    client_id = (os.getenv("PLAID_CLIENT_ID") or settings.PLAID_CLIENT_ID or "").strip()
+    secret = (os.getenv("PLAID_SECRET") or settings.PLAID_SECRET or "").strip()
+    return bool(client_id and secret)
 
 
 class PlaidService:
     def __init__(self):
-        self.client_id = settings.PLAID_CLIENT_ID
-        self.secret = settings.PLAID_SECRET
-        self.env = settings.PLAID_ENV
         self._client = None
+        self._current_config = None
+
+    @property
+    def client_id(self) -> str:
+        return (os.getenv("PLAID_CLIENT_ID") or settings.PLAID_CLIENT_ID or "").strip()
+
+    @property
+    def secret(self) -> str:
+        return (os.getenv("PLAID_SECRET") or settings.PLAID_SECRET or "").strip()
+
+    @property
+    def env(self) -> str:
+        return (os.getenv("PLAID_ENV") or settings.PLAID_ENV or "sandbox").strip().lower()
 
     def get_client(self):
         """Lazy load Plaid API Client."""
         if not is_plaid_configured():
             return None
-        if self._client is None:
+        current_config = (self.client_id, self.secret, self.env)
+        if self._client is None or self._current_config != current_config:
             try:
                 import plaid
                 from plaid.api import plaid_api
@@ -79,6 +92,7 @@ class PlaidService:
                 )
                 api_client = plaid.ApiClient(configuration)
                 self._client = plaid_api.PlaidApi(api_client)
+                self._current_config = current_config
             except Exception as e:
                 print(f"Error initializing Plaid client: {e}")
                 return None
@@ -95,6 +109,8 @@ class PlaidService:
                 from plaid.model.country_code import CountryCode
 
                 request = LinkTokenCreateRequest(
+                    client_id=self.client_id,
+                    secret=self.secret,
                     products=[Products("investments"), Products("transactions")],
                     client_name="Invest Tracker",
                     country_codes=[CountryCode("US")],
@@ -108,6 +124,7 @@ class PlaidService:
                 }
             except Exception as e:
                 print(f"Plaid Link Token error: {e}")
+                raise e
 
         # Fallback / Sandbox Mock link token
         return {

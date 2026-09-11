@@ -146,6 +146,34 @@ function switchAddAccountTab(tabName) {
   document.querySelectorAll('#modal-add-account .modal-tab-content').forEach(c => {
     c.classList.toggle('active', c.id === `add-tab-${normalizedTab}`);
   });
+
+  if (normalizedTab === 'plaid') {
+    updatePlaidTabUI();
+  }
+}
+
+async function updatePlaidTabUI() {
+  const connectedPanel = document.getElementById('plaid-connected-panel');
+  const unconfiguredPanel = document.getElementById('plaid-unconfigured-panel');
+  const envLabel = document.getElementById('plaid-env-label');
+
+  try {
+    const status = await apiFetch('/plaid/status');
+    if (status && status.configured) {
+      connectedPanel?.classList.remove('hidden');
+      unconfiguredPanel?.classList.add('hidden');
+      if (envLabel) {
+        envLabel.textContent = (status.env || 'sandbox').toUpperCase();
+      }
+    } else {
+      connectedPanel?.classList.add('hidden');
+      unconfiguredPanel?.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.warn('Could not check Plaid status:', err);
+    connectedPanel?.classList.add('hidden');
+    unconfiguredPanel?.classList.remove('hidden');
+  }
 }
 
 function setupAddAccountModal() {
@@ -240,27 +268,87 @@ function setupAddAccountModal() {
     }
   });
 
-  // Tab 1: Plaid Connect Handler
-  const connectPlaidHandler = async () => {
+  // Tab 1: Plaid Link Handler
+  const launchPlaidLink = async () => {
+    const btn = document.getElementById('btn-connect-plaid');
+    const originalContent = btn ? btn.innerHTML : '';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <span>Opening Plaid Link...</span>
+      `;
+    }
+
     try {
-      await apiFetch('/plaid/link/token', { method: 'POST' });
-      await apiFetch('/plaid/link/exchange', {
-        method: 'POST',
-        body: JSON.stringify({
-          public_token: 'public-sandbox-mock-token',
-          institution_name: 'Fidelity Investments (Mock)'
-        })
+      // 1. Request Link Token from backend
+      const res = await apiFetch('/plaid/link-token', { method: 'POST' });
+      const linkToken = res?.link_token;
+      const isConfigured = res?.is_configured !== false;
+
+      if (!isConfigured) {
+        // Switch to unconfigured notice panel
+        document.getElementById('plaid-connected-panel')?.classList.add('hidden');
+        document.getElementById('plaid-unconfigured-panel')?.classList.remove('hidden');
+        return;
+      }
+
+      if (!linkToken) {
+        throw new Error('No link token returned by server.');
+      }
+
+      // 2. Check if Plaid JS SDK is loaded
+      if (typeof window.Plaid === 'undefined' || !window.Plaid.create) {
+        throw new Error('Plaid Link SDK is loading or blocked by your browser. Please check your internet connection.');
+      }
+
+      // 3. Open official Plaid Link UI
+      const handler = window.Plaid.create({
+        token: linkToken,
+        onSuccess: async (public_token, metadata) => {
+          try {
+            const instName = metadata?.institution?.name || 'Connected Brokerage';
+            await apiFetch('/plaid/exchange-token', {
+              method: 'POST',
+              body: JSON.stringify({
+                public_token: public_token,
+                institution_name: instName
+              })
+            });
+            document.getElementById('modal-add-account')?.classList.add('hidden');
+            alert(`Plaid connection to ${instName} created successfully!`);
+            window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
+          } catch (err) {
+            alert(`Error exchanging Plaid token: ${err.message}`);
+          }
+        },
+        onExit: (err, metadata) => {
+          if (err) {
+            console.warn('Plaid Link exited with error:', err);
+            alert(`Plaid Link error: ${err.message || err.display_message || 'Connection cancelled'}`);
+          }
+        }
       });
-      document.getElementById('modal-add-account')?.classList.add('hidden');
-      alert('Plaid connection created successfully!');
-      window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
+      handler.open();
     } catch (err) {
-      alert(`Plaid connection failed: ${err.message}`);
+      console.error('Plaid connection error:', err);
+      // If error indicates unconfigured credentials, switch to notice panel
+      if (err.message && (err.message.includes('not configured') || err.message.includes('credentials') || err.message.includes('Client ID'))) {
+        document.getElementById('plaid-connected-panel')?.classList.add('hidden');
+        document.getElementById('plaid-unconfigured-panel')?.classList.remove('hidden');
+      } else {
+        alert(`Plaid connection failed: ${err.message}`);
+      }
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+      }
     }
   };
 
-  document.getElementById('btn-connect-plaid')?.addEventListener('click', connectPlaidHandler);
-  document.getElementById('btn-connect-plaid-demo')?.addEventListener('click', connectPlaidHandler);
+  document.getElementById('btn-connect-plaid')?.addEventListener('click', launchPlaidLink);
+  document.getElementById('btn-connect-plaid-demo')?.addEventListener('click', launchPlaidLink);
 }
 
 export function populateLinkedAssetDropdowns() {

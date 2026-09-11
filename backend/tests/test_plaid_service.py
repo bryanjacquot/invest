@@ -59,3 +59,12 @@ def test_sync_no_institutions(client, auth_headers):
     res_sync = client.post("/api/plaid/sync", headers=auth_headers)
     assert res_sync.status_code == 200
     assert res_sync.json()["synced_institutions_count"] == 0
+
+
+def test_plaid_status_endpoint(client, auth_headers):
+    res = client.get("/api/plaid/status", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert "configured" in data
+    assert "env" in data
+    assert isinstance(data["configured"], bool)

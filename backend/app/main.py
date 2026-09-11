@@ -25,6 +25,7 @@ from app.schemas import (
     RiskProfileResponse,
     PlaidLinkTokenResponse,
     PlaidExchangeTokenRequest,
+    PlaidStatusResponse,
     SyncResponse,
 )
 from app.auth import (
@@ -33,7 +34,7 @@ from app.auth import (
     create_access_token,
     get_current_user,
 )
-from app.plaid_service import plaid_service
+from app.plaid_service import plaid_service, is_plaid_configured
 from app.manual_asset_service import manual_asset_service
 from app.analytics import analytics_engine
 from app.backup import backup_service
@@ -314,14 +315,30 @@ def get_risk_profile(
 # =========================================================================
 # Plaid Integration & On-Demand Sync
 # =========================================================================
+@app.get("/api/plaid/status", response_model=PlaidStatusResponse)
+def get_plaid_status(user: User = Depends(get_current_user)):
+    """Return whether Plaid API keys are configured via environment variables and the current environment."""
+    return PlaidStatusResponse(
+        configured=is_plaid_configured(),
+        env=plaid_service.env
+    )
+
+
 @app.post("/api/plaid/link-token", response_model=PlaidLinkTokenResponse)
+@app.post("/api/plaid/link/token", response_model=PlaidLinkTokenResponse)
 def create_link_token(user: User = Depends(get_current_user)):
     """Create Plaid Link Token for frontend brokerage connection."""
-    res = plaid_service.create_link_token(user.id, user.username)
-    return PlaidLinkTokenResponse(**res)
+    configured = is_plaid_configured()
+    try:
+        res = plaid_service.create_link_token(user.id, user.username)
+        res["is_configured"] = configured
+        return PlaidLinkTokenResponse(**res)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Plaid Link error: {str(e)}")
 
 
 @app.post("/api/plaid/exchange-token")
+@app.post("/api/plaid/link/exchange")
 def exchange_public_token(
     data: PlaidExchangeTokenRequest,
     user: User = Depends(get_current_user),

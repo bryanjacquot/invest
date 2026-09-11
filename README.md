@@ -27,6 +27,52 @@ A self-hosted personal finance intelligence system running in Docker containers 
 10. **One-Click SQLite Backup & Restore:** Direct `.sqlite` snapshot download and verified restore.
 11. **Secure Authentication:** Username & salted password hashing using `bcrypt` and JWT session tokens.
 
+## Configuration & Environment Variables
+
+InvestTracker is configured via environment variables. Copy `.env.example` to `.env` to customize settings:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `APP_ENV` | Application environment (`development`, `production`) | `production` |
+| `PORT` | Backend API port | `3011` |
+| `DATABASE_URL` | SQLite database path / SQLAlchemy connection string | `sqlite:///./data/invest.db` |
+| `BACKUP_DIR` | Directory for automated and manual `.sqlite` backups | `./data/backups` |
+| `JWT_SECRET` | Secret key for signing session tokens | Production secret string |
+| `ENCRYPTION_KEY` | 32-byte Fernet key for encrypting institution tokens at rest | Base64-encoded 32-byte key |
+| `PLAID_CLIENT_ID` | Plaid API Client ID (from [Plaid Dashboard](https://dashboard.plaid.com)) | `""` (Optional) |
+| `PLAID_SECRET` | Plaid API Secret key | `""` (Optional) |
+| `PLAID_ENV` | Plaid environment tier (`sandbox`, `development`, `production`) | `sandbox` |
+
+### Plaid Financial API Setup
+
+To protect API secrets, Plaid credentials cannot be entered or updated through the web application UI or stored via API requests. They are configured strictly via server environment variables.
+
+1. **Obtain Plaid Keys:**
+   - Sign up at [dashboard.plaid.com](https://dashboard.plaid.com).
+   - Go to **Team Settings** -> **Keys** to retrieve your `client_id` and `secret`.
+2. **Set Environment Variables:**
+   - Export them in your shell profile (e.g. `~/.bash_profile` or `~/.zshrc`):
+     ```bash
+     export PLAID_CLIENT_ID="your_plaid_client_id"
+     export PLAID_SECRET="your_plaid_secret"
+     export PLAID_ENV="production"  # or "sandbox"
+     ```
+   - Or pass them directly when running:
+     ```bash
+     PLAID_CLIENT_ID="your_client_id" PLAID_SECRET="your_secret" PLAID_ENV="production" ./run_local.sh
+     ```
+3. **Restart the Service:**
+   - Ensure the server process is launched from a shell where these variables are active (`env | grep PLAID`).
+   - When running with Docker: pass the variables in your Docker compose or container environment.
+4. **Connecting Accounts:**
+   - In the app, click **"+ Add Account"** in the sidebar.
+   - The **Using Plaid** tab will automatically detect that Plaid is configured and display the **"Connect with Plaid"** button to launch Plaid Link.
+   - If keys are omitted or left blank, the app displays manual account entry options and setup instructions.
+
 ---
 
 ## Quick Start (Local Development)

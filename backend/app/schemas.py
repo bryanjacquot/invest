@@ -263,11 +263,17 @@ class NetWorthSummary(BaseModel):
 class PlaidLinkTokenResponse(BaseModel):
     link_token: str
     expiration: str
+    is_configured: bool = True
 
 
 class PlaidExchangeTokenRequest(BaseModel):
     public_token: str
     institution_name: Optional[str] = "Connected Bank"
+
+
+class PlaidStatusResponse(BaseModel):
+    configured: bool
+    env: str
 
 
 class SyncResponse(BaseModel):

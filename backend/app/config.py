@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     # Encryption key for sensitive tokens (Fernet/AES-256)
     ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "bGFyZ2Utc2VjdXJlLWtleS0zMi1ieXRlcy1mb3ItZmVybmV0ISE=")
     
-    # Plaid credentials
-    PLAID_CLIENT_ID: str = os.getenv("PLAID_CLIENT_ID", "")
-    PLAID_SECRET: str = os.getenv("PLAID_SECRET", "")
-    PLAID_ENV: str = os.getenv("PLAID_ENV", "sandbox")
+    # Plaid credentials (read from environment variables)
+    PLAID_CLIENT_ID: str = ""
+    PLAID_SECRET: str = ""
+    PLAID_ENV: str = "sandbox"
     
     # Backup directory
     BACKUP_DIR: str = os.getenv("BACKUP_DIR", "./data/backups")

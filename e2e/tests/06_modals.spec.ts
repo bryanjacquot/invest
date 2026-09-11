@@ -42,9 +42,9 @@ test.describe('Suite 6: Modals & Actions', () => {
     await expect(modals.tabManual).toBeVisible();
     await expect(modals.tabDebt).toBeVisible();
 
-    // Tab 1: Plaid Connect
+    // Tab 1: Plaid Connect tab is active
     await expect(modals.tabPlaid).toHaveClass(/active/);
-    await expect(modals.btnConnectPlaid).toBeVisible();
+    await expect(page.locator('#add-tab-plaid')).toBeVisible();
 
     // Tab 2: Manual Account with Categorized Dropdown
     await modals.tabManual.click();
@@ -166,5 +166,35 @@ test.describe('Suite 6: Modals & Actions', () => {
     await expect(headerPill).toBeVisible();
     await expect(headerPill).toHaveText('Mortgage');
   });
+
+  test('MOD-05: Plaid tab displays configuration status via environment and contains no secret inputs', async ({ page }) => {
+    const modals = new Modals(page);
+    const addAccountBtn = page.locator('#btn-sidebar-add-account');
+    await addAccountBtn.click();
+
+    await expect(modals.tabPlaid).toHaveClass(/active/);
+    
+    // Ensure that UI inputs for client ID and secret do not exist in the DOM
+    await expect(page.locator('#plaid-config-client-id')).toHaveCount(0);
+    await expect(page.locator('#plaid-config-secret')).toHaveCount(0);
+    await expect(page.locator('#form-plaid-config')).toHaveCount(0);
+
+    // Check that either the unconfigured panel or the connected panel is displayed
+    const unconfiguredPanel = page.locator('#plaid-unconfigured-panel');
+    const connectedPanel = page.locator('#plaid-connected-panel');
+
+    const isConnectedVisible = await connectedPanel.isVisible();
+    if (isConnectedVisible) {
+      // If configured via environment variables
+      await expect(page.locator('#btn-connect-plaid')).toBeVisible();
+    } else {
+      // If unconfigured, instructions to set environment variables are shown
+      await expect(unconfiguredPanel).toBeVisible();
+      await expect(unconfiguredPanel).toContainText('PLAID_CLIENT_ID');
+      await expect(unconfiguredPanel).toContainText('PLAID_SECRET');
+      await expect(unconfiguredPanel).toContainText('README.md');
+    }
+  });
 });
+
 
