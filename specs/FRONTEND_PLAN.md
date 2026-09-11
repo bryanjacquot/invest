@@ -31,7 +31,7 @@ frontend/
     ├── components/
     │   ├── header.js              # Top navigation bar, user avatar/dropdown, sync trigger, seed demo button
     │   ├── sidebar.js             # Collapsible left navigation panel, flat accounts list with active selection highlight
-    │   └── modals.js              # Modal handlers: Auth, Unified Add Account, Edit Account dialog, Valuation Update, Settings/Backup
+    │   └── modals.js              # Modal handlers: Auth, Unified Add Account, Edit Account dialog (with Delete Account CTA), Delete Confirmation, Delete Success, Delete Error, Valuation Update, Settings/Backup
     ├── views/
     │   ├── account.js             # Route: /account (Default) — Unified Performance, Target Curves, Holdings & Risk Allocation (All Accounts or single/multi-account)
     │   └── real_estate.js         # Route: /real-estate — Property cards, equity gauges, loan-to-value (LTV) ratios
@@ -48,7 +48,7 @@ frontend/
 
 | Route Path | View Module | URL Query Parameters | Description |
 | :--- | :--- | :--- | :--- |
-| `/` or `/account` | `views/account.js` | `id` (Single account UUID, e.g. `?id=93f3cf72-...`)<br>`accounts` (Comma-separated account IDs for multi-select)<br>`unit` (`pct` or `dollar`)<br>`timeframe` (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`)<br>`tab` (`performance`, `holdings`)<br>`search` (Holdings search query) | Default landing view and consolidated account & performance view for single, multi, or blended accounts. Includes metric toggles (% vs $), horizon buttons, Chart vs Table toggle, Holdings allocation donut, and "Edit Account" modal action. Legacy `/overview` automatically redirects to `/account`. |
+| `/` or `/account` | `views/account.js` | `id` (Single account UUID, e.g. `?id=93f3cf72-...`)<br>`accounts` (Comma-separated account IDs for multi-select)<br>`unit` (`pct` or `dollar`)<br>`timeframe` (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `LIFETIME`)<br>`tab` (`performance`, `holdings`)<br>`search` (Holdings search query) | Default landing view and consolidated account & performance view for single, multi, or blended accounts. Includes metric toggles (% vs $), horizon buttons, Chart vs Table toggle, Holdings allocation donut, and "Edit Account" modal action (with permanent account deletion, irreversible confirmation prompt, and cascade cleanup). Legacy `/overview` automatically redirects to `/account`. |
 | `/real-estate` | `views/real_estate.js` | `id` (Optional property account ID to highlight/filter) | Physical property assets, market valuations, attached mortgages, and net equity tracking. |
 
 ### 3.2 URL Synchronization Workflow
@@ -108,9 +108,9 @@ To enable seamless client-side SPA routing during local development without requ
    - Core: `state.js`, `api.js`, `formatters.js`, `router.js`.
    - Views: `views/account.js` (default), `views/real_estate.js`.
    - Components: `components/sidebar.js`, `components/header.js`, `components/modals.js`.
-2. **Simplified Navigation**: Completed
+2. **Simplified Navigation & Account Actions**: Completed
    - Flat accounts list in sidebar with selection highlights (no checkboxes).
-   - "Edit Account" settings dialog accessible from header button on `/account`.
+   - "Edit Account" settings dialog accessible from header button on `/account`, supporting metadata/target updates and permanent account deletion with irreversible confirmation, child record cascade cleanup, success notification, error handling, and reactive sidebar refresh.
    - Unified Chart/Table switcher, % vs $ metric unit toggles, and timeframe buttons.
 3. **Automated End-to-End Testing (Playwright + TypeScript)**: Completed
    - Complete test suite passing across all test suites (`e2e/`).

@@ -326,5 +326,54 @@ class ManualAssetService:
             ))
         return results
 
+    @staticmethod
+    def delete_account(
+        db: Session,
+        user: User,
+        account_id: str
+    ) -> Dict[str, Any]:
+        """Permanently delete an account and all associated DB records (snapshots, holdings, transactions, target config, manual details)."""
+        account = db.query(Account).filter(
+            Account.id == account_id,
+            Account.user_id == user.id
+        ).first()
+        if not account:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Account with ID '{account_id}' not found"
+            )
+
+        account_name = account.name
+        institution_id = account.institution_id
+
+        # 1. Unlink any accounts pointing to this account as linked_asset_id
+        linked_accounts = db.query(Account).filter(
+            Account.linked_asset_id == account_id
+        ).all()
+        for la in linked_accounts:
+            la.linked_asset_id = None
+
+        # 2. Delete the account (SQLAlchemy cascades delete to manual_detail, target_config, snapshots, holdings, transactions)
+        db.delete(account)
+        db.flush()
+
+        # 3. Clean up parent institution if it was manual and has 0 remaining accounts
+        if institution_id:
+            remaining_accounts = db.query(Account).filter(
+                Account.institution_id == institution_id
+            ).count()
+            if remaining_accounts == 0:
+                inst = db.query(Institution).filter(Institution.id == institution_id).first()
+                if inst:
+                    db.delete(inst)
+
+        db.commit()
+        return {
+            "success": True,
+            "message": f"Account '{account_name}' successfully deleted",
+            "name": account_name,
+            "account_id": account_id
+        }
+
 
 manual_asset_service = ManualAssetService()

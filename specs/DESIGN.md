@@ -73,11 +73,12 @@ flowchart TD
    - UI Views & Modules:
      - **Unified Account & Performance (`/account` — Default Landing View):** Single-account, multi-account, and blended all-accounts portfolio performance, target curve comparison ($ and %), Chart/Table toggles, Holdings breakdown & asset allocation donut, and "Edit Account" configuration dialog. Serving as the primary overview of the portfolio when "All Accounts" is selected.
      - **Real Estate & Loans (`/real-estate`):** Property cards, linked mortgage equity calculations, and LTV gauges.
-     - **Modals:** Authentication, Unified Add Account (3 tabs: Plaid Connect, Categorized Manual Account Picker, Manual Debt Account), Edit Account settings, Valuation & Loan Payment loggers, Database Backup & Restore.
+     - **Modals:** Authentication, Unified Add Account (3 tabs: Plaid Connect, Categorized Manual Account Picker, Manual Debt Account), Edit Account settings (with Delete Account CTA), Delete Account Confirmation, Delete Account Success notification, Delete Account Error notification, Valuation & Loan Payment loggers, Database Backup & Restore.
 
 2. **Backend API Container (`invest-api` — Port `3011`):**
    - High-performance **Python (FastAPI)** application.
    - Authentication module (`/api/auth/*`).
+   - Account management & cascade deletion (`/api/accounts/*`).
    - Plaid integration service for automated accounts (`/api/plaid/*`).
    - Manual Asset & Loan service (`/api/manual-assets/*`).
    - Analytics and Return Calculation Engine (`/api/analytics/*`).
@@ -214,6 +215,25 @@ sequenceDiagram
   - Automated copy of the database into the `/data/backups/` volume directory.
 - **Restore:**
   - One-click upload and restore of backup file with integrity and verification checks before applying.
+
+### 4.10 Account Deletion & Record Cascade
+- **User Interface & Interaction Flow:**
+  - A red **"Delete Account"** button (`#btn-delete-account`, `.btn-danger`) is located in the lower-left corner of the Edit Account modal.
+  - Clicking "Delete Account" opens an irreversible confirmation modal (`#modal-confirm-delete-account`) informing the user that proceeding will permanently remove the account and all associated historical records, snapshots, holdings, and transactions.
+  - Confirming triggers a `DELETE /api/accounts/{account_id}` request to the backend.
+  - **Success Handling:** Upon successful deletion, both the Edit Account dialog and the Confirmation dialog close, and a success notification dialog (`#modal-delete-account-success`) appears stating `"[account] successfully deleted"` with a Close button. Dismissing this dialog redirects the user to `/account` (if currently viewing the deleted account) and dispatches an `invest:accounts-changed` event to refresh the sidebar and remove the deleted account.
+  - **Failure Handling:** If deletion fails, a dedicated error modal (`#modal-delete-account-error`) opens, displaying the specific error message returned by the API with a Close button.
+- **Backend Cascade Deletion Logic (`DELETE /api/accounts/{account_id}`):**
+  - Verifies user ownership of the account (`Account.user_id == current_user.id`).
+  - **Unlinks Bi-directional Foreign Keys:** Disconnects `linked_asset_id` on any loans referencing the account as collateral, and clears `linked_asset_id` on the account itself.
+  - **Cascading Child Record Deletion:** Permanently deletes all dependent records across:
+    - `MANUAL_ACCOUNT_DETAIL`
+    - `TARGET_CONFIG`
+    - `ACCOUNT_SNAPSHOT`
+    - `HOLDING`
+    - `TRANSACTION`
+  - Deletes the primary `ACCOUNT` record.
+  - **Orphaned Institution Cleanup:** Verifies whether the parent `INSTITUTION` has any remaining accounts associated with it. If no accounts remain, deletes the parent institution record to maintain database hygiene.
 
 ---
 

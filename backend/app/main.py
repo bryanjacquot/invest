@@ -249,6 +249,16 @@ def update_account(
     )
 
 
+@app.delete("/api/accounts/{account_id}")
+def delete_account(
+    account_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete an account and all associated DB records."""
+    return manual_asset_service.delete_account(db, user, account_id)
+
+
 @app.post("/api/accounts/valuations")
 def log_valuation(
     data: ValuationLogCreate,

@@ -1,5 +1,5 @@
 import pytest
-from app.models import Account, TargetConfig, AccountSnapshot
+from app.models import Account, TargetConfig, AccountSnapshot, Holding, ManualAccountDetail
 
 
 def test_list_accounts_empty(client, auth_headers):
@@ -76,4 +76,80 @@ def test_update_nonexistent_account(client, auth_headers):
     res = client.put("/api/accounts/fake-id-1234", headers=auth_headers, json={
         "name": "New Name"
     })
+    assert res.status_code == 404
+
+
+def test_delete_account_success(client, auth_headers, db_session):
+    # 1. Create an account with balance and target rate
+    res_create = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Account To Delete",
+        "account_class": "asset",
+        "type": "investment",
+        "subtype": "brokerage",
+        "category_group": "Taxable Brokerage",
+        "initial_balance": 15000.0,
+        "target_annual_return_rate": 7.5
+    })
+    assert res_create.status_code == 201
+    acc_id = res_create.json()["id"]
+
+    # Verify records exist in DB
+    assert db_session.query(Account).filter(Account.id == acc_id).first() is not None
+    assert db_session.query(AccountSnapshot).filter(AccountSnapshot.account_id == acc_id).count() >= 1
+    assert db_session.query(TargetConfig).filter(TargetConfig.account_id == acc_id).first() is not None
+
+    # 2. Delete the account
+    res_del = client.delete(f"/api/accounts/{acc_id}", headers=auth_headers)
+    assert res_del.status_code == 200
+    del_data = res_del.json()
+    assert del_data["success"] is True
+    assert "Account To Delete" in del_data["message"]
+    assert del_data["name"] == "Account To Delete"
+
+    # 3. Verify all DB records cascaded and removed
+    assert db_session.query(Account).filter(Account.id == acc_id).first() is None
+    assert db_session.query(AccountSnapshot).filter(AccountSnapshot.account_id == acc_id).count() == 0
+    assert db_session.query(TargetConfig).filter(TargetConfig.account_id == acc_id).first() is None
+    assert db_session.query(Holding).filter(Holding.account_id == acc_id).count() == 0
+
+
+def test_delete_account_unlinks_linked_asset(client, auth_headers, db_session):
+    # Create asset
+    res_prop = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Rental Property",
+        "account_class": "asset",
+        "type": "real_estate",
+        "subtype": "property",
+        "category_group": "Real Estate",
+        "initial_balance": 500000.0
+    })
+    prop_id = res_prop.json()["id"]
+
+    # Create mortgage linked to property
+    res_mort = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Property Mortgage",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Mortgage",
+        "category_group": "Debt",
+        "initial_balance": 350000.0,
+        "linked_asset_id": prop_id
+    })
+    mort_id = res_mort.json()["id"]
+
+    # Verify link
+    mort_acc = db_session.query(Account).filter(Account.id == mort_id).first()
+    assert mort_acc.linked_asset_id == prop_id
+
+    # Delete the property asset
+    res_del = client.delete(f"/api/accounts/{prop_id}", headers=auth_headers)
+    assert res_del.status_code == 200
+
+    # Verify mortgage is still active, but linked_asset_id is now None
+    db_session.refresh(mort_acc)
+    assert mort_acc.linked_asset_id is None
+
+
+def test_delete_nonexistent_account(client, auth_headers):
+    res = client.delete("/api/accounts/fake-nonexistent-id", headers=auth_headers)
     assert res.status_code == 404

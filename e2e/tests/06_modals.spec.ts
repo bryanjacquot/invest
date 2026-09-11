@@ -195,6 +195,115 @@ test.describe('Suite 6: Modals & Actions', () => {
       await expect(unconfiguredPanel).toContainText('README.md');
     }
   });
+
+  test('MOD-06: Delete Account flow with confirmation, irreversible warning, and success dialog', async ({ page }) => {
+    // 1. Create a dedicated account to delete
+    const accountToDelete = `DelAcc_${Date.now()}`;
+    await page.locator('#btn-sidebar-add-account').click();
+    const modals = new Modals(page);
+    await modals.tabManual.click();
+    await modals.manualAccountTypeSelect.selectOption('Investment');
+    await modals.manualAccountNameInput.fill(accountToDelete);
+    await modals.manualAccountBalanceInput.fill('12500');
+    await modals.manualSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Select the created account from the sidebar
+    const accountItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: accountToDelete });
+    await accountItem.waitFor({ state: 'visible', timeout: 8000 });
+    await accountItem.click();
+
+    // 3. Open Edit Account modal
+    const editBtn = page.locator('#btn-edit-account');
+    await editBtn.waitFor({ state: 'visible', timeout: 8000 });
+    await editBtn.click();
+
+    const editModal = page.locator('#modal-edit-account');
+    await expect(editModal).toBeVisible();
+
+    // 4. Verify red Delete Account button exists in lower left
+    const deleteBtn = page.locator('#btn-delete-account');
+    await expect(deleteBtn).toBeVisible();
+    await expect(deleteBtn).toHaveClass(/btn-danger/);
+
+    // 5. Click Delete Account and verify confirmation modal
+    await deleteBtn.click();
+    const confirmModal = page.locator('#modal-confirm-delete-account');
+    await expect(confirmModal).toBeVisible();
+    await expect(page.locator('#delete-confirm-account-name')).toHaveText(accountToDelete);
+    await expect(confirmModal).toContainText('irreversible');
+
+    // 6. Confirm deletion
+    const [delResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/accounts/') && resp.request().method() === 'DELETE' && resp.status() === 200),
+      page.locator('#btn-confirm-delete-account').click()
+    ]);
+    expect(delResponse.status()).toBe(200);
+
+    // Both confirmation and edit dialogs should close
+    await expect(confirmModal).toBeHidden();
+    await expect(editModal).toBeHidden();
+
+    // 7. Success dialog should appear
+    const successModal = page.locator('#modal-delete-account-success');
+    await expect(successModal).toBeVisible();
+    await expect(page.locator('#delete-success-account-name')).toHaveText(accountToDelete);
+    await expect(successModal).toContainText('successfully deleted');
+
+    // 8. Click Close on success dialog
+    await page.locator('#btn-close-delete-success').click();
+    await expect(successModal).toBeHidden();
+
+    // 9. Sidebar should refresh and no longer show the deleted account
+    await expect(page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: accountToDelete })).toHaveCount(0);
+  });
+
+  test('MOD-07: Delete Account failure displays error dialog with API message and Close button', async ({ page }) => {
+    // 1. Select the first account and open Edit modal
+    const firstAccount = page.locator('#sidebar-accounts-list .sidebar-account-item').first();
+    await firstAccount.waitFor({ state: 'visible', timeout: 8000 });
+    await firstAccount.click();
+
+    const editBtn = page.locator('#btn-edit-account');
+    await editBtn.waitFor({ state: 'visible', timeout: 8000 });
+    await editBtn.click();
+
+    const editModal = page.locator('#modal-edit-account');
+    await expect(editModal).toBeVisible();
+
+    // 2. Click Delete Account
+    const deleteBtn = page.locator('#btn-delete-account');
+    await deleteBtn.click();
+
+    const confirmModal = page.locator('#modal-confirm-delete-account');
+    await expect(confirmModal).toBeVisible();
+
+    // 3. Mock API failure for the DELETE request
+    await page.route('**/api/accounts/*', async route => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'Simulated database error deleting account records' })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // 4. Click confirm delete
+    await page.locator('#btn-confirm-delete-account').click();
+
+    // Confirm modal closes, error modal appears
+    await expect(confirmModal).toBeHidden();
+    const errorModal = page.locator('#modal-delete-account-error');
+    await expect(errorModal).toBeVisible();
+    await expect(page.locator('#delete-error-message')).toContainText('Simulated database error deleting account records');
+
+    // 5. Click Close on error modal
+    await page.locator('#btn-close-delete-error').click();
+    await expect(errorModal).toBeHidden();
+  });
 });
 
 

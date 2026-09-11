@@ -97,10 +97,13 @@ invest/
 ### Suite 6: Modals & Data Modifications (`06_modals.spec.ts`)
 | Test ID | Scenario | Actions | Assertions |
 | :--- | :--- | :--- | :--- |
-| **MOD-01** | Edit Account dialog | Click "Edit Account" button in account header | Modal opens; pre-populates name, category group, and target APR rate; submitting `PUT /api/accounts/{id}` updates balance card and table |
-| **MOD-02** | Valuation / Payment dialog | Click "+ Log Valuation / Payment" | Submitting new balance logs historical snapshot; chart re-renders with new valuation point |
-| **MOD-03** | Add Manual Account | Click "+ Add Account" in sidebar footer | Selects manual asset type; validates required fields; newly added account appears in sidebar flat list |
-| **MOD-04** | Settings & Backup modal | Open User menu -> Database & Backup | Modal displays SQLite database size and snapshot counts; clicking "Download Backup" triggers `.sqlite` file download |
+| **MOD-01** | Edit Account dialog pre-fills and updates settings | Click "Edit Account" button in account header | Modal opens; pre-populates name, category group, and target APR rate; submitting `PUT /api/accounts/{id}` updates balance card and table |
+| **MOD-02** | Add Account modal has 3 tabs, manual picker, and debt form | Click "+ Add Account" in sidebar | Modal opens with Plaid, Manual Asset, and Debt tabs; clicking categories filters subtype options; required fields validated |
+| **MOD-03** | Bidirectional Asset-Debt linking | In Add Account debt form, select linked asset property | Submitting creates mutual relationship between debt liability and collateral asset; both accounts reflect linkage |
+| **MOD-04** | Single account badge and debt subtype selector | Navigate to account page and test debt subtypes | Account type badge displays clean formatting; selecting loan types populates appropriate term and interest fields |
+| **MOD-05** | Plaid environment status & credential security | Switch to Plaid tab in Add Account modal | Displays configuration status based on server environment variables; verifies no client secret inputs exist in DOM |
+| **MOD-06** | Delete Account flow with confirmation & success dialog | Open Edit Account -> Click red "Delete Account" -> Confirm irreversible prompt | Confirmation dialog warns action is irreversible; confirming sends `DELETE /api/accounts/{id}`; closes edit & confirm modals; displays success dialog `"[account] successfully deleted"`; clicking Close triggers sidebar refresh and redirects to `/account` |
+| **MOD-07** | Delete Account failure handling with error dialog | Mock API failure on account deletion -> Confirm deletion | Error modal (`#modal-delete-account-error`) opens; displays server error message; clicking Close dismisses modal without unmounting view |
 
 ---
 

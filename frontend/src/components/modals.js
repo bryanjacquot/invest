@@ -625,4 +625,84 @@ function setupEditAccountModal() {
       }
     }
   });
+
+  // Delete Account Confirmation & Execution Flow
+  let currentDeletingAccountId = null;
+  let currentDeletingAccountName = '';
+
+  const deleteBtn = document.getElementById('btn-delete-account');
+  const confirmModal = document.getElementById('modal-confirm-delete-account');
+  const confirmName = document.getElementById('delete-confirm-account-name');
+  const confirmBtn = document.getElementById('btn-confirm-delete-account');
+
+  const successModal = document.getElementById('modal-delete-account-success');
+  const successName = document.getElementById('delete-success-account-name');
+  const closeSuccessBtn = document.getElementById('btn-close-delete-success');
+
+  const errorModal = document.getElementById('modal-delete-account-error');
+  const errorMsg = document.getElementById('delete-error-message');
+  const closeErrorBtn = document.getElementById('btn-close-delete-error');
+
+  // 1. Open confirmation modal on "Delete Account" button click
+  deleteBtn?.addEventListener('click', () => {
+    const accountId = document.getElementById('edit-acc-id')?.value;
+    const accountName = document.getElementById('edit-acc-name')?.value || 'this account';
+    currentDeletingAccountId = accountId;
+    currentDeletingAccountName = accountName;
+
+    if (confirmName) confirmName.textContent = accountName;
+    confirmModal?.classList.remove('hidden');
+  });
+
+  // 2. Execute deletion upon confirmation
+  confirmBtn?.addEventListener('click', async () => {
+    if (!currentDeletingAccountId) return;
+    const originalBtnContent = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = `<span>Deleting...</span>`;
+
+    try {
+      const res = await apiFetch(`/accounts/${encodeURIComponent(currentDeletingAccountId)}`, {
+        method: 'DELETE'
+      });
+
+      // Close confirmation dialog and edit dialog
+      confirmModal?.classList.add('hidden');
+      document.getElementById('modal-edit-account')?.classList.add('hidden');
+
+      // Display "[account] successfully deleted" success dialog
+      const displayName = res?.name || currentDeletingAccountName || 'Account';
+      if (successName) successName.textContent = displayName;
+      successModal?.classList.remove('hidden');
+    } catch (err) {
+      // Close confirmation dialog and show error dialog with API message
+      confirmModal?.classList.add('hidden');
+      if (errorMsg) {
+        errorMsg.textContent = err.message || 'Failed to delete account. Please try again.';
+      }
+      errorModal?.classList.remove('hidden');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalBtnContent;
+    }
+  });
+
+  // 3. Handle success modal Close button click
+  closeSuccessBtn?.addEventListener('click', () => {
+    successModal?.classList.add('hidden');
+
+    // If currently viewing the deleted account URL, redirect to /account
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('id') === currentDeletingAccountId) {
+      window.history.pushState({}, '', '/account');
+    }
+
+    // Refresh sidebar to no longer show the account
+    window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
+  });
+
+  // 4. Handle error modal Close button click
+  closeErrorBtn?.addEventListener('click', () => {
+    errorModal?.classList.add('hidden');
+  });
 }

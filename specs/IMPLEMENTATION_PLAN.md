@@ -96,8 +96,9 @@ invest/
   - Create Link Token (`/api/plaid/create_link_token`), exchange public token (`/api/plaid/exchange_public_token`), on-demand sync (`POST /api/plaid/sync`), fetching investments, holdings, balances, and historical transactions.
   - AES-256 token encryption with fallback when keys are not configured.
 - **`manual_asset_service.py`:**
-  - Endpoints: `POST /api/manual/accounts`, `GET /api/manual/accounts`, `POST /api/manual/valuations` (log new valuation/payment), `POST /api/manual/link-loan`.
+  - Endpoints: `POST /api/manual/accounts`, `GET /api/manual/accounts`, `PUT /api/accounts/{account_id}`, `DELETE /api/accounts/{account_id}`, `POST /api/manual/valuations` (log new valuation/payment), `POST /api/manual/link-loan`.
   - Computes property equity, loan-to-value (LTV), and amortized balances.
+  - Implements `delete_account()` cascading deletion: unlinks linked liabilities/assets, deletes `MANUAL_ACCOUNT_DETAIL`, `TARGET_CONFIG`, snapshots, holdings, and transactions, removes the account record, and cleans up orphaned parent institutions.
 - **`analytics.py`:**
   - **Net Worth Timeline:** Aggregated balance sheet over time (Liquid + Real Estate/Manual Assets - Loans).
   - **Performance Engine (TWR & Nominal Return):** Computes percentage return and nominal dollar growth across `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime`.
@@ -124,7 +125,10 @@ invest/
   - **Modal Dialogs:**
     - Authentication Modal (Login / Register)
     - Add Account Modal (3 Tabs: Plaid Connect, Categorized Manual Account Picker, Manual Debt Account)
-    - Edit Account Dialog (Target return rate, subtype, category, and metadata)
+    - Edit Account Dialog (Target return rate, subtype, category, metadata, and lower-left red "Delete Account" button)
+    - Delete Account Confirmation Dialog (Irreversible deletion confirmation warning)
+    - Delete Account Success Dialog (`"[account] successfully deleted"` notice, sidebar refresh, and auto-redirect)
+    - Delete Account Error Dialog (API error display with dismiss action)
     - Log Valuation / Loan Payment Modal
     - Database Backup & Restore Modal
 
@@ -139,7 +143,7 @@ invest/
 
 ### 1. Backend Test Suite (Pytest)
 1. **`test_auth.py`:** Registration, bcrypt password verification, JWT creation & decoding, duplicate username conflict handling.
-2. **`test_accounts.py`:** Account listing scoped to user, category groups, updating target rates, active status.
+2. **`test_accounts.py`:** Account listing scoped to user, category groups, updating target rates, active status, and permanent account cascade deletion (`test_delete_account_success`, `test_delete_account_not_found_or_unauthorized`, `test_delete_linked_asset_and_institution_cleanup`).
 3. **`test_manual_assets.py`:** Real estate creation, loans, linking, net equity math ($\text{Market Value} - \text{Loan Balance}$), LTV, manual valuation logs.
 4. **`test_analytics.py`:** TWR calculations across intervals (`1M`, `YTD`, `1Y`, `3Y`, `5Y`, `Lifetime`), nominal dollar gains, blended multi-account curves, target variances, 5-tier risk scoring.
 5. **`test_plaid_service.py`:** AES-256 token encryption/decryption, mock link token generation, mock sync of holdings, balances, transactions.
@@ -150,7 +154,7 @@ invest/
 2. **`02_sidebar_navigation.spec.ts`:** Default `/account` landing, brand logo routing, flat account selection highlights, All Accounts toggle.
 3. **`04_account_performance.spec.ts`:** $ vs. % metric toggles, horizon switching (`1M` to `Lifetime`), and Chart vs. Table toggle.
 4. **`05_account_holdings.spec.ts`:** Holdings subtab, asset allocation donut chart, and live search filtering.
-5. **`06_modals.spec.ts`:** Edit Account settings dialog pre-filling, validation, and submission.
+5. **`06_modals.spec.ts`:** Modal interactions covering Edit Account settings (`MOD-01`), Add Account tabs & manual picker (`MOD-02`), Bidirectional asset-debt linking (`MOD-03`), Debt subtype selectors (`MOD-04`), Plaid environment status (`MOD-05`), Delete Account confirmation & success notification (`MOD-06`), and Delete Account failure handling with API error dialog (`MOD-07`).
 
 ### Verification Commands
 ```bash
