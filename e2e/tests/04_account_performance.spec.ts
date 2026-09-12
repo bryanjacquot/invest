@@ -35,4 +35,11 @@ test.describe('Suite 4: Account Performance & Controls', () => {
     await expect(page.locator('#performance-chart-container')).toBeVisible();
     await expect(accPage.matrixTable).toBeHidden();
   });
+
+  test('ACC-04: Subtab buttons display "Performance" and "Holdings"', async ({ page }) => {
+    const accPage = new AccountPage(page);
+    await expect(accPage.tabPerformance).toHaveText('Performance');
+    await expect(accPage.tabHoldings).toHaveText('Holdings');
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/account_renamed_subtabs.png' });
+  });
 });

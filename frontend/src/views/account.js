@@ -168,15 +168,15 @@ export default {
           <nav class="view-tabs sub-nav-tabs" id="account-sub-tabs">
             <button type="button" class="tab-btn ${activeSubTab === 'performance' ? 'active' : ''}" data-subtab="performance">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              <span>Performance & Targets</span>
+              <span>Performance</span>
             </button>
             <button type="button" class="tab-btn ${activeSubTab === 'holdings' ? 'active' : ''}" data-subtab="holdings">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-              <span>Holdings & Allocation</span>
+              <span>Holdings</span>
             </button>
           </nav>
 
-          <!-- SUBTAB 1: Performance & Targets -->
+          <!-- SUBTAB 1: Performance -->
           <div id="subtab-content-performance" class="tab-content ${activeSubTab === 'performance' ? 'active' : ''}">
             <!-- Controls Bar (Horizon, Unit: % / $, Format: Chart / Table) -->
             <div class="view-header-bar glass-card">
@@ -283,7 +283,7 @@ export default {
             </div>
           </div>
 
-          <!-- SUBTAB 2: Holdings & Allocation -->
+          <!-- SUBTAB 2: Holdings -->
           <div id="subtab-content-holdings" class="tab-content ${activeSubTab === 'holdings' ? 'active' : ''}">
             <div class="holdings-layout-stacked holdings-layout-grid" style="display: flex !important; flex-direction: column !important; gap: 1.5rem !important; width: 100% !important;">
               <!-- Consolidated Holdings Table -->
