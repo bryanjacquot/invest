@@ -407,12 +407,20 @@ function setupValuationModal() {
     const note = document.getElementById('valuation-note')?.value.trim() || null;
 
     try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      let isoDate;
+      if (!date || date === todayStr) {
+        isoDate = new Date().toISOString();
+      } else {
+        isoDate = new Date(date + 'T12:00:00').toISOString();
+      }
+
       await apiFetch('/accounts/valuations', {
         method: 'POST',
         body: JSON.stringify({
           account_id: accId,
           new_balance: amount,
-          date: date ? new Date(date + 'T12:00:00').toISOString() : undefined,
+          date: isoDate,
           note
         })
       });

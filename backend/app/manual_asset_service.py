@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -233,7 +233,17 @@ class ManualAssetService:
                 detail="Valuation updates can only be logged for manually added accounts"
             )
 
-        timestamp = data.date or datetime.utcnow()
+        now = datetime.utcnow()
+        if data.date:
+            input_dt = data.date
+            if input_dt.tzinfo is not None:
+                input_dt = input_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            if input_dt >= now or input_dt.date() >= now.date():
+                timestamp = now
+            else:
+                timestamp = input_dt
+        else:
+            timestamp = now
         snapshot = AccountSnapshot(
             account_id=account.id,
             snapshot_timestamp=timestamp,

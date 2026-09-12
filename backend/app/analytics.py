@@ -183,14 +183,18 @@ class AnalyticsEngine:
         # Weighted annual target rate
         blended_target_rate = cls._calculate_blended_target_rate(target_accounts)
 
+        now = datetime.utcnow()
+        latest_snap_time = max([s.snapshot_timestamp for s in snapshots]) if snapshots else now
+        effective_end_date = max(now, latest_snap_time)
+
         for tf in timeframes:
             start_date = cls.get_timeframe_start_date(tf, first_snap_date)
-            perf = cls._compute_interval_performance(target_accounts, snapshots, start_date, datetime.utcnow(), blended_target_rate, tf)
+            perf = cls._compute_interval_performance(target_accounts, snapshots, start_date, effective_end_date, blended_target_rate, tf)
             timeframe_metrics[tf] = perf
 
         # Generate chart points for active timeframe
         active_start_date = cls.get_timeframe_start_date(active_timeframe, first_snap_date)
-        chart_series = cls._generate_chart_series(target_accounts, snapshots, active_start_date, datetime.utcnow(), blended_target_rate)
+        chart_series = cls._generate_chart_series(target_accounts, snapshots, active_start_date, effective_end_date, blended_target_rate)
 
         # Account breakdown table
         account_breakdown = []
@@ -476,6 +480,12 @@ class AnalyticsEngine:
         num_steps = min(60, days_total)
         step_days = max(1, days_total // num_steps)
 
+        # Generate evenly spaced sample dates guaranteed to end precisely at end_date
+        sample_dates = []
+        for i in range(num_steps):
+            sample_dates.append(start_date + timedelta(days=i * (days_total / num_steps)))
+        sample_dates.append(end_date)
+
         points = []
         start_bal = sum(
             cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], start_date) * (-1.0 if a.account_class == "liability" else 1.0)
@@ -503,11 +513,9 @@ class AnalyticsEngine:
         for a in accounts:
             acc_start_bals[a.id] = cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], start_date) * (-1.0 if a.account_class == "liability" else 1.0)
 
-        for i in range(num_steps + 1):
-            curr_date = start_date + timedelta(days=i * step_days)
-            if curr_date > end_date:
-                curr_date = end_date
+        seen_date_indices = {}
 
+        for curr_date in sample_dates:
             # Category balance & return on curr_date
             cat_balances = {}
             cat_returns = {}
@@ -548,8 +556,9 @@ class AnalyticsEngine:
             target_val = start_bal * ((1.0 + (annual_target_rate / 100.0)) ** years)
             target_ret = round(((target_val - start_bal) / base_bal * 100.0), 2)
 
-            points.append(ChartPoint(
-                date=curr_date.strftime("%Y-%m-%d"),
+            date_str = curr_date.strftime("%Y-%m-%d")
+            point = ChartPoint(
+                date=date_str,
                 actual_balance=round(actual_val, 2),
                 actual_return_pct=actual_ret,
                 target_balance=round(target_val, 2),
@@ -558,7 +567,14 @@ class AnalyticsEngine:
                 category_returns_pct=cat_returns,
                 account_balances=acc_balances,
                 account_returns_pct=acc_returns
-            ))
+            )
+
+            # If the same calendar date was already added (e.g. from terminal step), update to latest
+            if date_str in seen_date_indices:
+                points[seen_date_indices[date_str]] = point
+            else:
+                seen_date_indices[date_str] = len(points)
+                points.append(point)
 
         return points
 
@@ -571,6 +587,9 @@ class AnalyticsEngine:
         candidates = [s for s in snapshots if s.snapshot_timestamp <= target_date]
         if candidates:
             return candidates[-1].current_balance
+        # If target_date is on or after the latest snapshot's calendar day, use latest snapshot
+        if target_date.date() >= snapshots[-1].snapshot_timestamp.date():
+            return snapshots[-1].current_balance
         # If target_date is before earliest recorded snapshot, use earliest
         return snapshots[0].current_balance
 
