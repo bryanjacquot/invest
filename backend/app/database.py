@@ -136,6 +136,10 @@ def init_db():
                 UPDATE accounts SET type = 'TAXABLE', subtype = 'Investment'
                 WHERE (type IN ('investment', 'depository') OR subtype IN ('brokerage', 'Investment')) AND type NOT IN ('TAX-DEFERRED', 'TAX-FREE', 'REAL-ESTATE, OTHER', 'DEBT');
             """))
+            # 6. Ensure net_contribution column exists on account_snapshots
+            snap_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(account_snapshots)")).fetchall()]
+            if "net_contribution" not in snap_cols:
+                conn.execute(text("ALTER TABLE account_snapshots ADD COLUMN net_contribution FLOAT DEFAULT 0.0;"))
         except Exception as e:
             print(f"Schema normalization note: {e}")
 

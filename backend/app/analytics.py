@@ -210,6 +210,7 @@ class AnalyticsEngine:
                 "target_rate_pct": acc_target,
                 "start_balance": acc_perf.start_balance,
                 "end_balance": acc_perf.end_balance,
+                "net_contributions": acc_perf.net_contributions,
                 "gain_loss": acc_perf.capital_gain_loss,
                 "return_pct": acc_perf.return_pct,
                 "target_return_pct": acc_perf.target_return_pct,
@@ -421,6 +422,9 @@ class AnalyticsEngine:
         """Calculate start balance, end balance, TWR return %, target curve value, and variance."""
         start_bal = 0.0
         end_bal = 0.0
+        total_contributions = 0.0
+        weighted_contributions = 0.0
+        total_duration_sec = max(1.0, (end_date - start_date).total_seconds())
 
         for acc in accounts:
             acc_snaps = [s for s in snapshots if s.account_id == acc.id]
@@ -431,8 +435,23 @@ class AnalyticsEngine:
                 start_bal += sb * multiplier
                 end_bal += eb * multiplier
 
-        gain_loss = end_bal - start_bal
-        return_pct = round((gain_loss / start_bal * 100.0), 2) if start_bal > 0 else 0.0
+                for s in acc_snaps:
+                    if start_date < s.snapshot_timestamp <= end_date:
+                        c = (getattr(s, "net_contribution", 0.0) or 0.0) * multiplier
+                        total_contributions += c
+                        remaining_sec = max(0.0, (end_date - s.snapshot_timestamp).total_seconds())
+                        weight = remaining_sec / total_duration_sec
+                        weighted_contributions += c * weight
+
+        # Capital gain/loss excludes external cash contributions
+        gain_loss = (end_bal - start_bal) - total_contributions
+
+        # Capital base for return calculation (start balance + time-weighted cash flows)
+        capital_base = start_bal + weighted_contributions
+        if capital_base <= 0:
+            capital_base = max(start_bal + total_contributions, 1.0) if (start_bal + total_contributions) > 0 else 1.0
+
+        return_pct = round((gain_loss / capital_base * 100.0), 2) if capital_base > 0 else 0.0
 
         # Target growth over days elapsed
         days_elapsed = max(1, (end_date - start_date).days)
@@ -455,7 +474,7 @@ class AnalyticsEngine:
             end_date=end_date.strftime("%Y-%m-%d"),
             start_balance=round(start_bal, 2),
             end_balance=round(end_bal, 2),
-            net_contributions=0.0,
+            net_contributions=round(total_contributions, 2),
             capital_gain_loss=round(gain_loss, 2),
             return_pct=return_pct,
             annualized_return_pct=annualized,
@@ -524,6 +543,23 @@ class AnalyticsEngine:
             acc_returns = {}
             actual_val = 0.0
 
+            # Precalculate contributions from start_date to curr_date
+            tot_contribs_curr = 0.0
+            acc_contribs_curr = {a.id: 0.0 for a in accounts}
+            cat_contribs_curr = {cat: 0.0 for cat in category_map.keys()}
+
+            for a in accounts:
+                multiplier = -1.0 if a.account_class == "liability" else 1.0
+                a_snaps = [s for s in snapshots if s.account_id == a.id]
+                for s in a_snaps:
+                    if start_date < s.snapshot_timestamp <= curr_date:
+                        c = (getattr(s, "net_contribution", 0.0) or 0.0) * multiplier
+                        tot_contribs_curr += c
+                        acc_contribs_curr[a.id] += c
+                        cat = a.category_group or "Other"
+                        if cat in cat_contribs_curr:
+                            cat_contribs_curr[cat] += c
+
             for cat, cat_accs in category_map.items():
                 cat_val = sum(
                     cls._get_balance_at_date([s for s in snapshots if s.account_id == a.id], curr_date) * (-1.0 if a.account_class == "liability" else 1.0)
@@ -532,10 +568,10 @@ class AnalyticsEngine:
                 actual_val += cat_val
                 cat_balances[cat] = round(cat_val, 2)
                 csb = cat_start_bals.get(cat, 0.0)
-                if csb > 0:
-                    cret = round(((cat_val - csb) / csb * 100.0), 2)
-                else:
-                    cret = 0.0
+                cat_contrib = cat_contribs_curr.get(cat, 0.0)
+                cat_gain = (cat_val - csb) - cat_contrib
+                cat_base = max(csb + cat_contrib, 1.0)
+                cret = round((cat_gain / cat_base * 100.0), 2) if (csb + cat_contrib) > 0 else 0.0
                 cat_returns[cat] = cret
 
             for a in accounts:
@@ -543,13 +579,15 @@ class AnalyticsEngine:
                 acc_label = a.name
                 acc_balances[acc_label] = round(acc_val, 2)
                 asb = acc_start_bals.get(a.id, 0.0)
-                if asb > 0:
-                    aret = round(((acc_val - asb) / asb * 100.0), 2)
-                else:
-                    aret = 0.0
+                acc_contrib = acc_contribs_curr.get(a.id, 0.0)
+                acc_gain = (acc_val - asb) - acc_contrib
+                acc_base = max(asb + acc_contrib, 1.0)
+                aret = round((acc_gain / acc_base * 100.0), 2) if (asb + acc_contrib) > 0 else 0.0
                 acc_returns[acc_label] = aret
 
-            actual_ret = round(((actual_val - start_bal) / base_bal * 100.0), 2)
+            pure_gain = (actual_val - start_bal) - tot_contribs_curr
+            chart_base = max(start_bal + tot_contribs_curr, 1.0)
+            actual_ret = round((pure_gain / chart_base * 100.0), 2) if (start_bal + tot_contribs_curr) > 0 else 0.0
 
             # Target compounded curve
             years = (curr_date - start_date).days / 365.25

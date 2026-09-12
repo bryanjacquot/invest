@@ -103,6 +103,7 @@ class AccountUpdate(BaseModel):
 class ValuationLogCreate(BaseModel):
     account_id: str
     new_balance: float
+    contribution: Optional[float] = 0.0
     date: Optional[datetime] = None
     note: Optional[str] = None
 
@@ -115,6 +116,7 @@ class SnapshotOut(BaseModel):
     account_id: str
     snapshot_timestamp: datetime
     current_balance: float
+    net_contribution: Optional[float] = 0.0
     available_balance: Optional[float] = None
     cost_basis_total: Optional[float] = None
     market_value_total: Optional[float] = None

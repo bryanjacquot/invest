@@ -272,3 +272,31 @@ def test_standardized_account_types_and_subtypes(client, auth_headers):
     assert res6.json()["type"] == "DEBT"
     assert res6.json()["subtype"] == "Other"
 
+
+def test_log_valuation_with_contribution(client, auth_headers):
+    # 1. Create manual investment account
+    res = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "HSA Health Equity",
+        "account_class": "asset",
+        "type": "TAX-FREE",
+        "subtype": "HSA",
+        "category_group": "IRAs",
+        "initial_balance": 20000.0
+    })
+    assert res.status_code == 201
+    acc_id = res.json()["id"]
+
+    # 2. Log valuation update with a contribution
+    val_res = client.post("/api/accounts/valuations", headers=auth_headers, json={
+        "account_id": acc_id,
+        "new_balance": 22000.0,
+        "contribution": 1500.0,
+        "note": "Bi-weekly payroll contribution + dividend"
+    })
+    assert val_res.status_code == 200
+    data = val_res.json()
+    assert data["success"] is True
+    assert data["new_balance"] == 22000.0
+    assert data["net_contribution"] == 1500.0
+
+

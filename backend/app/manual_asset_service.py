@@ -116,6 +116,7 @@ class ManualAssetService:
             account_id=account.id,
             snapshot_timestamp=datetime.utcnow(),
             current_balance=initial_val,
+            net_contribution=0.0,
             available_balance=initial_val,
             cost_basis_total=data.manual_detail.purchase_price if data.manual_detail and data.manual_detail.purchase_price else initial_val,
             market_value_total=initial_val,
@@ -163,24 +164,23 @@ class ManualAssetService:
             raise HTTPException(status_code=404, detail="Account not found")
 
         if data.name is not None:
-            account.name = data.name
+            account.name = data.name.strip()
         if data.type is not None:
-            account.type = data.type
+            account.type = data.type.strip()
         if data.subtype is not None:
-            account.subtype = data.subtype
+            account.subtype = data.subtype.strip()
         if data.category_group is not None:
-            account.category_group = data.category_group
+            account.category_group = data.category_group.strip()
         if data.is_active is not None:
             account.is_active = data.is_active
 
+        # Handle bidirectional linked asset changes
         if data.linked_asset_id is not None:
-            old_linked_id = account.linked_asset_id
-            new_linked_id = data.linked_asset_id if data.linked_asset_id != "" else None
-
-            # If old link existed and is changing/removed, clear the other account's pointer
-            if old_linked_id and old_linked_id != new_linked_id:
+            new_linked_id = data.linked_asset_id.strip() if data.linked_asset_id else None
+            # Clear old reciprocal link if any
+            if account.linked_asset_id and account.linked_asset_id != new_linked_id:
                 old_linked = db.query(Account).filter(
-                    Account.id == old_linked_id,
+                    Account.id == account.linked_asset_id,
                     Account.user_id == user.id
                 ).first()
                 if old_linked and old_linked.linked_asset_id == account.id:
@@ -244,10 +244,13 @@ class ManualAssetService:
                 timestamp = input_dt
         else:
             timestamp = now
+
+        contrib = float(data.contribution or 0.0)
         snapshot = AccountSnapshot(
             account_id=account.id,
             snapshot_timestamp=timestamp,
             current_balance=data.new_balance,
+            net_contribution=contrib,
             available_balance=data.new_balance,
             market_value_total=data.new_balance,
             note=data.note or "Manual valuation update"

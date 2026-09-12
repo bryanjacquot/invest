@@ -272,6 +272,7 @@ def log_valuation(
         "message": "Valuation successfully logged",
         "snapshot_id": snap.id,
         "new_balance": snap.current_balance,
+        "net_contribution": snap.net_contribution,
         "timestamp": snap.snapshot_timestamp.isoformat()
     }
 

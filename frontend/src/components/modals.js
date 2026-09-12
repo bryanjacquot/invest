@@ -384,25 +384,66 @@ export function populateLinkedAssetDropdowns() {
 }
 
 // 3. Valuation Modal
+let currentModalPrevVal = 0.0;
+
 export function openValuationModal(accountId, currentValue, title = 'Valuation Update') {
   const modal = document.getElementById('modal-valuation');
   if (!modal) return;
 
+  currentModalPrevVal = parseFloat(currentValue) || 0.0;
   document.getElementById('valuation-modal-title').textContent = title;
   document.getElementById('valuation-account-id').value = accountId;
   document.getElementById('valuation-amount').value = currentValue || '';
+
+  const contribInput = document.getElementById('valuation-contribution');
+  if (contribInput) contribInput.value = '0.00';
+
+  const contribGroup = document.getElementById('valuation-contribution-group');
+  if (contribGroup) {
+    const isLiability = title.toLowerCase().includes('mortgage') || title.toLowerCase().includes('loan') || title.toLowerCase().includes('payment');
+    contribGroup.style.display = isLiability ? 'none' : 'block';
+  }
+
   document.getElementById('valuation-date').value = new Date().toISOString().split('T')[0];
   const noteEl = document.getElementById('valuation-note');
   if (noteEl) noteEl.value = '';
 
+  updateValuationBreakdownPreview();
   modal.classList.remove('hidden');
 }
 
+function updateValuationBreakdownPreview() {
+  const amountEl = document.getElementById('valuation-amount');
+  const contribEl = document.getElementById('valuation-contribution');
+  const prevEl = document.getElementById('val-preview-prev');
+  const contribPreviewEl = document.getElementById('val-preview-contrib');
+  const gainEl = document.getElementById('val-preview-gain');
+  if (!prevEl || !gainEl) return;
+
+  const newVal = parseFloat(amountEl?.value) || 0.0;
+  const contribVal = parseFloat(contribEl?.value) || 0.0;
+  const prevVal = currentModalPrevVal;
+
+  prevEl.textContent = formatCurrency(prevVal);
+  if (contribPreviewEl) contribPreviewEl.textContent = formatCurrency(contribVal);
+
+  const totalDelta = newVal - prevVal;
+  const impliedGain = totalDelta - contribVal;
+
+  const sign = impliedGain >= 0 ? '+' : '';
+  gainEl.textContent = `${sign}${formatCurrency(impliedGain)}`;
+  gainEl.style.color = impliedGain >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+}
+
 function setupValuationModal() {
+  document.getElementById('valuation-amount')?.addEventListener('input', updateValuationBreakdownPreview);
+  document.getElementById('valuation-contribution')?.addEventListener('input', updateValuationBreakdownPreview);
+
   document.getElementById('form-valuation')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const accId = document.getElementById('valuation-account-id').value;
     const amount = parseFloat(document.getElementById('valuation-amount').value);
+    const contrib = parseFloat(document.getElementById('valuation-contribution')?.value) || 0.0;
     const date = document.getElementById('valuation-date').value;
     const note = document.getElementById('valuation-note')?.value.trim() || null;
 
@@ -420,6 +461,7 @@ function setupValuationModal() {
         body: JSON.stringify({
           account_id: accId,
           new_balance: amount,
+          contribution: contrib,
           date: isoDate,
           note
         })

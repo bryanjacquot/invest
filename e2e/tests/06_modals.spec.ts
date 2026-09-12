@@ -368,6 +368,57 @@ test.describe('Suite 6: Modals & Actions', () => {
     // Manual account MUST show Log Valuation button
     await expect(page.locator('#btn-log-valuation')).toBeVisible();
   });
+
+  test('MOD-10: Valuation modal separates contributions from gains and updates preview and performance', async ({ page }) => {
+    // 1. Create a dedicated manual investment account
+    const manualAccName = `ContribAcc_${Date.now()}`;
+    await page.locator('#btn-sidebar-add-account').click();
+    const modals = new Modals(page);
+    await modals.tabManual.click();
+    await modals.manualAccountTypeSelect.selectOption('HSA');
+    await modals.manualAccountNameInput.fill(manualAccName);
+    await modals.manualAccountBalanceInput.fill('20000');
+    await modals.manualSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Select the manual account
+    const accountItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: manualAccName });
+    await accountItem.waitFor({ state: 'visible', timeout: 8000 });
+    await accountItem.click();
+
+    // 3. Open Valuation modal
+    const valBtn = page.locator('#btn-log-valuation');
+    await expect(valBtn).toBeVisible();
+    await valBtn.click();
+
+    const valModal = page.locator('#modal-valuation');
+    await expect(valModal).toBeVisible();
+
+    // 4. Verify preview elements exist
+    await expect(page.locator('#valuation-breakdown-card')).toBeVisible();
+    await expect(page.locator('#val-preview-prev')).toContainText('$20,000');
+
+    // 5. Fill new balance = 22,000 and contribution = 2,000 (pure deposit)
+    await page.locator('#valuation-amount').fill('22000');
+    await page.locator('#valuation-contribution').fill('2000');
+    await expect(page.locator('#val-preview-contrib')).toContainText('$2,000');
+    await expect(page.locator('#val-preview-gain')).toContainText('$0.00');
+
+    // 6. Submit update
+    const [valResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/accounts/valuations') && resp.status() === 200),
+      page.locator('#form-valuation button[type="submit"]').click()
+    ]);
+    expect(valResponse.status()).toBe(200);
+    await expect(valModal).toBeHidden();
+
+    // 7. Verify balance updated to $22,000 in banner
+    await expect(page.locator('#account-current-balance-display')).toContainText('$22,000');
+
+    // 8. Verify performance gain remains $0.00 and 0.00%
+    await expect(page.locator('#metric-actual-return')).toContainText('+0.00%');
+    await expect(page.locator('#metric-actual-gain')).toContainText('$0.00');
+  });
 });
 
 

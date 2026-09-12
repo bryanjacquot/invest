@@ -411,6 +411,14 @@
             <input type="number" step="0.01" id="valuation-amount" class="form-input" required>
           </div>
 
+          <div class="form-group" id="valuation-contribution-group">
+            <label for="valuation-contribution">Net Contribution / Deposit ($)</label>
+            <input type="number" step="0.01" id="valuation-contribution" class="form-input" placeholder="0.00" value="0.00">
+            <span class="form-hint" style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+              External deposits or withdrawals in this update (excluded from gains and growth).
+            </span>
+          </div>
+
           <div class="form-group">
             <label for="valuation-date">Effective Date</label>
             <input type="date" id="valuation-date" class="form-input">
@@ -419,6 +427,22 @@
           <div class="form-group">
             <label for="valuation-note">Note / Appraisal Reference</label>
             <input type="text" id="valuation-note" class="form-input" placeholder="e.g. Spring 2026 Home Appraisal, Monthly Paydown">
+          </div>
+
+          <!-- Live Breakdown Preview -->
+          <div id="valuation-breakdown-card" class="glass-card" style="padding: 0.75rem 1rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); border-radius: var(--radius-sm);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+              <span style="color: var(--text-muted);">Current Balance:</span>
+              <span id="val-preview-prev" style="font-weight: 600;">$0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+              <span style="color: var(--text-muted);">Net Contribution:</span>
+              <span id="val-preview-contrib" style="font-weight: 600;">$0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; border-top: 1px solid var(--border-glass); padding-top: 0.35rem; margin-top: 0.35rem;">
+              <span style="color: var(--text-muted);">Implied Valuation Gain / Interest:</span>
+              <span id="val-preview-gain" style="font-weight: 700; color: var(--accent-green);">+$0.00</span>
+            </div>
           </div>
 
           <div class="form-actions">

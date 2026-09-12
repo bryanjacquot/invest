@@ -115,6 +115,7 @@ class AccountSnapshot(Base):
     account_id = Column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     snapshot_timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     current_balance = Column(Float, default=0.0, nullable=False)
+    net_contribution = Column(Float, default=0.0, nullable=False)
     available_balance = Column(Float, nullable=True)
     cost_basis_total = Column(Float, nullable=True)
     market_value_total = Column(Float, nullable=True)

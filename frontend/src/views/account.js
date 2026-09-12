@@ -121,7 +121,7 @@ export default {
           <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
             <div>
               <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
-              <div style="font-size: 1.75rem; font-weight: 800; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
+              <div id="account-current-balance-display" style="font-size: 1.75rem; font-weight: 800; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
                 ${formatCurrency(isSingle ? this.singleAccount.current_balance : totalBal)}
               </div>
             </div>
@@ -251,6 +251,7 @@ export default {
                       <th>Time Horizon</th>
                       <th>Start Balance</th>
                       <th>End Balance</th>
+                      <th>Net Contrib</th>
                       <th>Gain / Loss</th>
                       <th>Actual Return</th>
                       <th>Target Return</th>
@@ -258,7 +259,7 @@ export default {
                     </tr>
                   </thead>
                   <tbody id="performance-timeframe-tbody">
-                    <tr><td colspan="7" class="text-center">Loading performance metrics...</td></tr>
+                    <tr><td colspan="8" class="text-center">Loading performance metrics...</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -715,6 +716,7 @@ export default {
     const tfList = ['1M', 'YTD', '1Y', '3Y', '5Y', 'LIFETIME'];
     tbody.innerHTML = tfList.map(tf => {
       const m = timeframeMetrics[tf] || {};
+      const contrib = m.net_contributions || 0;
       const gain = m.capital_gain_loss || 0;
       const ret = m.return_pct || 0;
       const tgt = m.target_return_pct || 0;
@@ -725,6 +727,9 @@ export default {
           <td><strong>${tf}</strong></td>
           <td>${formatCurrency(m.start_balance)}</td>
           <td>${formatCurrency(m.end_balance)}</td>
+          <td style="color: ${contrib !== 0 ? 'var(--text-main)' : 'var(--text-muted)'};">
+            ${contrib !== 0 ? (contrib > 0 ? '+' : '') + formatCurrency(contrib) : '—'}
+          </td>
           <td class="${gain >= 0 ? 'kpi-change positive' : 'kpi-change negative'}">
             ${gain >= 0 ? '+' : ''}${formatCurrency(gain)}
           </td>

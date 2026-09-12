@@ -101,3 +101,67 @@ def test_analytics_with_demo_portfolio(client, auth_headers, db_session, test_us
     assert rdata["blended_risk_tier"] in ["Very Low", "Low", "Moderate", "High", "Very High"]
     assert len(rdata["asset_allocation"]) >= 3
     assert len(rdata["account_risks"]) >= 3
+
+
+def test_performance_isolates_contributions_from_gains(client, auth_headers, db_session, test_user):
+    from datetime import datetime, timedelta
+    from app.models import Account, AccountSnapshot
+
+    # Create an account with a snapshot from 45 days ago
+    acc = Account(
+        user_id=test_user.id,
+        source_type="manual",
+        account_class="asset",
+        name="Contributions Test Account",
+        type="TAX-FREE",
+        subtype="HSA",
+        category_group="IRAs"
+    )
+    db_session.add(acc)
+    db_session.commit()
+
+    old_time = datetime.utcnow() - timedelta(days=45)
+    s0 = AccountSnapshot(
+        account_id=acc.id,
+        snapshot_timestamp=old_time,
+        current_balance=20000.0,
+        net_contribution=0.0
+    )
+    db_session.add(s0)
+    db_session.commit()
+
+    # 1. Log a pure contribution of $2,000 (balance goes from 20k to 22k)
+    res_val1 = client.post("/api/accounts/valuations", headers=auth_headers, json={
+        "account_id": acc.id,
+        "new_balance": 22000.0,
+        "contribution": 2000.0,
+        "note": "Pure cash deposit"
+    })
+    assert res_val1.status_code == 200
+
+    # Fetch 1Y performance for this specific account
+    perf1 = client.get(f"/api/analytics/performance?timeframe=1Y&account_filter={acc.id}", headers=auth_headers).json()
+    m1 = perf1["timeframe_metrics"]["1Y"]
+    assert m1["start_balance"] == 20000.0
+    assert m1["end_balance"] == 22000.0
+    assert m1["net_contributions"] == 2000.0
+    assert m1["capital_gain_loss"] == 0.0
+    assert m1["return_pct"] == 0.0
+
+    # 2. Now log a valuation gain of $1,000 with $0 contribution (balance goes to 23k)
+    res_val2 = client.post("/api/accounts/valuations", headers=auth_headers, json={
+        "account_id": acc.id,
+        "new_balance": 23000.0,
+        "contribution": 0.0,
+        "note": "Market appreciation"
+    })
+    assert res_val2.status_code == 200
+
+    perf2 = client.get(f"/api/analytics/performance?timeframe=1Y&account_filter={acc.id}", headers=auth_headers).json()
+    m2 = perf2["timeframe_metrics"]["1Y"]
+    assert m2["start_balance"] == 20000.0
+    assert m2["end_balance"] == 23000.0
+    assert m2["net_contributions"] == 2000.0
+    assert m2["capital_gain_loss"] == 1000.0
+    assert m2["return_pct"] > 0.0
+
