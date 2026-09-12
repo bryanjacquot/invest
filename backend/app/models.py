@@ -42,6 +42,7 @@ class Institution(Base):
     is_manual = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     last_sync_at = Column(DateTime, nullable=True)
+    sync_error = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="institutions")
     accounts = relationship("Account", back_populates="institution", cascade="all, delete-orphan")
@@ -66,6 +67,7 @@ class Account(Base):
     currency = Column(String(10), default="USD", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    sync_error = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="accounts")
     institution = relationship("Institution", back_populates="accounts")

@@ -24,21 +24,6 @@ export function initHeader() {
     }
   });
 
-  // Sync Button
-  document.getElementById('btn-sync-now')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btn-sync-now');
-    if (btn) btn.disabled = true;
-
-    try {
-      await apiFetch('/plaid/sync', { method: 'POST' });
-      window.dispatchEvent(new CustomEvent('invest:refresh-all-data'));
-    } catch (err) {
-      alert(`Sync failed: ${err.message}`);
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
-
   // User Dropdown
   const userBtn = document.getElementById('user-menu-btn');
   const userDropdown = document.getElementById('user-dropdown');
@@ -79,3 +64,73 @@ export function updateUserDisplay() {
     if (avatarEl) avatarEl.textContent = state.user.username.charAt(0).toUpperCase();
   }
 }
+
+let syncDismissTimeout = null;
+let syncFadeTimeout = null;
+
+export function showSyncing() {
+  clearTimeout(syncDismissTimeout);
+  clearTimeout(syncFadeTimeout);
+
+  const container = document.getElementById('header-sync-status');
+  const spinner = document.getElementById('sync-spinner');
+  const text = document.getElementById('sync-status-text');
+
+  if (!container || !spinner || !text) return;
+
+  container.classList.remove('hidden', 'fade-out', 'complete', 'error');
+  container.classList.add('syncing');
+  spinner.style.display = 'inline-block';
+  text.textContent = 'Syncing Accounts';
+}
+
+export function showSyncComplete() {
+  clearTimeout(syncDismissTimeout);
+  clearTimeout(syncFadeTimeout);
+
+  const container = document.getElementById('header-sync-status');
+  const spinner = document.getElementById('sync-spinner');
+  const text = document.getElementById('sync-status-text');
+
+  if (!container || !spinner || !text) return;
+
+  container.classList.remove('hidden', 'fade-out', 'syncing', 'error');
+  container.classList.add('complete');
+  spinner.style.display = 'none';
+  text.textContent = 'Sync Complete';
+
+  // Remain for 10 seconds, then fade away
+  syncDismissTimeout = setTimeout(() => {
+    container.classList.add('fade-out');
+    syncFadeTimeout = setTimeout(() => {
+      container.classList.add('hidden');
+      container.classList.remove('fade-out', 'complete');
+    }, 500);
+  }, 10000);
+}
+
+export function showSyncError(errorMessage = '') {
+  clearTimeout(syncDismissTimeout);
+  clearTimeout(syncFadeTimeout);
+
+  const container = document.getElementById('header-sync-status');
+  const spinner = document.getElementById('sync-spinner');
+  const text = document.getElementById('sync-status-text');
+
+  if (!container || !spinner || !text) return;
+
+  container.classList.remove('hidden', 'fade-out', 'syncing', 'complete');
+  container.classList.add('error');
+  spinner.style.display = 'none';
+  text.textContent = 'Sync Error';
+
+  // Remain for 10 seconds, then fade away
+  syncDismissTimeout = setTimeout(() => {
+    container.classList.add('fade-out');
+    syncFadeTimeout = setTimeout(() => {
+      container.classList.add('hidden');
+      container.classList.remove('fade-out', 'error');
+    }, 500);
+  }, 10000);
+}
+

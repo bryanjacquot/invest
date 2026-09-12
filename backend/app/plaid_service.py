@@ -176,7 +176,14 @@ class PlaidService:
         synced_holdings = 0
         now = datetime.utcnow()
 
-        if client and not raw_access_token.startswith("access-mock-"):
+        if institution.is_manual:
+            return {
+                "synced_accounts": 0,
+                "created_snapshots": 0,
+                "synced_holdings": 0
+            }
+
+        if client and raw_access_token and not raw_access_token.startswith("access-mock-"):
             try:
                 from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
                 request = InvestmentsHoldingsGetRequest(access_token=raw_access_token)
@@ -304,6 +311,9 @@ class PlaidService:
                     synced_holdings += 1
 
                 institution.last_sync_at = now
+                institution.sync_error = None
+                for acc in institution.accounts:
+                    acc.sync_error = None
                 db.commit()
 
                 return {
@@ -314,6 +324,11 @@ class PlaidService:
 
             except Exception as e:
                 print(f"Error during Plaid live sync: {e}")
+                institution.sync_error = str(e)
+                for acc in institution.accounts:
+                    acc.sync_error = str(e)
+                db.commit()
+                raise e
 
         # Mock Sync Behavior when Plaid is in mock/sandbox mode
         return self._sync_mock_institution(db, user, institution, now)
@@ -398,6 +413,9 @@ class PlaidService:
                 synced_holdings += 2
 
         institution.last_sync_at = now
+        institution.sync_error = None
+        for acc in accounts:
+            acc.sync_error = None
         db.commit()
 
         return {

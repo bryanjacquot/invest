@@ -5,7 +5,7 @@
 import { apiFetch } from '../api.js';
 import { state, setMetricUnit } from '../state.js';
 import { router } from '../router.js';
-import { formatCurrency, formatPercent, formatDate } from '../utils/formatters.js';
+import { formatCurrency, formatPercent, formatDate, formatDateTime } from '../utils/formatters.js';
 import { escapeHtml } from '../utils/dom.js';
 
 const ACCOUNT_COLORS = [
@@ -95,36 +95,52 @@ export default {
     container.innerHTML = `
       <section class="account-detail-container">
         <!-- 1. Top Account / Portfolio Header Card -->
-        <div class="glass-card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-          <div>
-            ${isSingle ? `
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <h2 style="margin: 0;" id="account-view-title">${escapeHtml(this.singleAccount.name)}</h2>
-                <span class="badge-pill moderate">${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</span>
-              </div>
-              <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
-                <span>Institution: <strong>${escapeHtml(this.singleAccount.institution_name || 'Manual')}</strong></span>
-              </div>
-            ` : `
-              <div style="display: flex; align-items: center; gap: 0.75rem;">
-                <h2 style="margin: 0;" id="account-view-title">${isAll ? 'All Accounts' : `${this.selectedAccountIds.length} Accounts Selected`}</h2>
-                <span class="badge-pill moderate">${isAll ? 'Blended Portfolio' : 'Custom Selection'}</span>
-              </div>
-              <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
-                <span>Total Portfolio Scope</span>
-                <span style="margin: 0 0.5rem;">•</span>
-                <span><strong>${selectedAccs.length}</strong> active account${selectedAccs.length === 1 ? '' : 's'} included</span>
-              </div>
-            `}
-          </div>
-
-          <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+        <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
             <div>
+              ${isSingle ? `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <h2 style="margin: 0;" id="account-view-title">${escapeHtml(this.singleAccount.name)}</h2>
+                  <span class="badge-pill moderate">${escapeHtml(this.singleAccount.subtype || this.singleAccount.type)}</span>
+                </div>
+                <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                  <span>Institution: <strong>${escapeHtml(this.singleAccount.institution_name || 'Manual')}</strong></span>
+                </div>
+              ` : `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <h2 style="margin: 0;" id="account-view-title">${isAll ? 'All Accounts' : `${this.selectedAccountIds.length} Accounts Selected`}</h2>
+                  <span class="badge-pill moderate">${isAll ? 'Blended Portfolio' : 'Custom Selection'}</span>
+                </div>
+                <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                  <span>Total Portfolio Scope</span>
+                  <span style="margin: 0 0.5rem;">•</span>
+                  <span><strong>${selectedAccs.length}</strong> active account${selectedAccs.length === 1 ? '' : 's'} included</span>
+                </div>
+              `}
+            </div>
+
+            <div style="text-align: right;">
               <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
               <div id="account-current-balance-display" style="font-size: 1.75rem; font-weight: 800; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
                 ${formatCurrency(isSingle ? this.singleAccount.current_balance : totalBal)}
               </div>
             </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-glass);">
+            <div id="account-sync-info" style="font-size: 0.85rem; color: var(--text-muted);">
+              ${isSingle && this.singleAccount.source_type === 'plaid' ? (
+                this.singleAccount.sync_error ? `
+                  <span style="color: var(--accent-red); font-weight: 500; display: inline-flex; align-items: center; gap: 0.35rem;" id="account-sync-error-msg">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Sync Error: ${escapeHtml(this.singleAccount.sync_error)}
+                  </span>
+                ` : `
+                  <span id="account-last-synced-msg">Last synced: <strong style="color: var(--text-main);">${this.singleAccount.last_synced_at ? formatDateTime(this.singleAccount.last_synced_at) : 'Never'}</strong></span>
+                `
+              ) : ''}
+            </div>
+
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
               ${isSingle ? `
                 <button class="btn btn-sm btn-secondary" id="btn-edit-account" title="Edit account settings and specifications">

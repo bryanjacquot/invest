@@ -38,3 +38,14 @@ export function formatTime(dateString) {
     return dateString;
   }
 }
+
+export function formatDateTime(dateString) {
+  if (!dateString) return '—';
+  try {
+    const d = new Date(dateString);
+    return `${d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  } catch {
+    return dateString;
+  }
+}
+

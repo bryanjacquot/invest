@@ -199,15 +199,16 @@ sequenceDiagram
 - **Blended Portfolio Risk Rating:** Consolidated weighted risk score across the entire portfolio.
 - Visual asset allocation donut chart (Equities vs. Fixed Income vs. Real Estate vs. Cash/Equivalents vs. Alternatives vs. Debt).
 
-### 4.8 On-Demand Update Workflow
-- **No background cron/workers polling Plaid.**
-- Dashboard displays: *Last Updated: [Timestamp]* and a prominent **"Sync Now"** button.
-- When clicked:
-  1. Requests historical transactions & balance data since last update (or all available history if first sync).
-  2. Requests latest balance, transactions, and holdings from Plaid API for all active accounts.
-  3. Creates a new immutable Snapshot entry in the database.
-  4. Updates current holdings table.
-  5. Returns refreshed metrics immediately to the UI.
+### 4.8 Daily Synchronization Workflow
+- **Automatic Daily Sync on Initial Load:**
+  - On application startup, checks if connected Plaid accounts have been synced on the current calendar day.
+  - If not yet synced today, automatically runs synchronization. If already synced today, no redundant sync is run until the next day.
+  - Header displays a real-time status pill: `[Spinner] Syncing Accounts` -> `Sync Complete` or `Sync Error`, which remains for 10 seconds and then smoothly fades away.
+  - When accounts are already up to date on load, nothing is displayed in the header.
+- **Account-Level Sync Status:**
+  - On the `/account` page, for Plaid accounts, the header card displays `Last synced: <date and time>` left-aligned opposite the Edit Account button.
+  - If a sync failure occurs, displays `Sync Error: <error>` in alert styling opposite Edit Account, and clears the error automatically on the next successful sync.
+  - Manual accounts omit sync status.
 
 ### 4.9 Database Backup & Restore
 - **Backup:**

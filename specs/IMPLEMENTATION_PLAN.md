@@ -114,7 +114,7 @@ invest/
   - Modern dark-mode palette with glassmorphism cards, subtle neon teal/blue accents, clean typography (Inter / Outfit), crisp stat badges.
   - Single-page architecture with dynamic modular views: **Unified Account & Performance** (`/account` — default landing view with All Accounts blended overview), **Real Estate & Loans** (`/real-estate`), and **Modal Dialogs**.
 - **Interactive UI Capabilities:**
-  - **Top Navigation & Auth Header:** User profile, sync status indicator, prominent **"⚡ Sync Now"** button, and Logout.
+  - **Top Navigation & Auth Header:** User profile, automatic daily sync status indicator with 10-second fade, demo seeding button, and User menu with Settings and Logout.
   - **Flat Highlighted Sidebar:** Clean list of user accounts with selection highlighting (no checkboxes), supporting single-account navigation and multi-account blending (Meta/Ctrl + Click), plus a top-level "🌟 All Accounts" row.
   - **Performance Timeframe Selector:** Quick toggle between `1M`, `YTD`, `1Y`, `3Y`, `5Y`, and `Lifetime`.
   - **Metric Unit Toggle:** Instant conversion between percentage return (`%`) and dollar gain (`$`).

@@ -11,7 +11,7 @@ import realEstateView from './views/real_estate.js';
 
 // Components
 import { initSidebar, renderSidebarAccountsList } from './components/sidebar.js';
-import { initHeader, updateUserDisplay } from './components/header.js';
+import { initHeader, updateUserDisplay, showSyncing, showSyncComplete, showSyncError } from './components/header.js';
 import { initModals, showAuthModal, populateLinkedAssetDropdowns } from './components/modals.js';
 
 // Register application routes
@@ -22,6 +22,7 @@ router.register('/real-estate', realEstateView);
 window.addEventListener('invest:refresh-all-data', async () => {
   await loadAccounts();
   await router.handleRoute();
+  await checkAndRunDailySync();
 });
 
 window.addEventListener('invest:refresh-accounts', async () => {
@@ -76,6 +77,51 @@ async function initApp() {
   // Mount active route
   const viewContainer = document.getElementById('view-container');
   router.init(viewContainer);
+
+  // Check and run daily Plaid sync if needed
+  await checkAndRunDailySync();
+}
+
+let isSyncInProgress = false;
+
+async function checkAndRunDailySync() {
+  if (isSyncInProgress) return;
+
+  const accounts = state.accounts || [];
+  const plaidAccounts = accounts.filter(acc => acc.source_type === 'plaid');
+  if (plaidAccounts.length === 0) {
+    return;
+  }
+
+  const todayStr = new Date().toDateString();
+  const needsSync = plaidAccounts.some(acc => {
+    if (!acc.last_synced_at) return true;
+    return new Date(acc.last_synced_at).toDateString() !== todayStr;
+  });
+
+  if (!needsSync) {
+    return;
+  }
+
+  isSyncInProgress = true;
+  showSyncing();
+
+  try {
+    const res = await apiFetch('/plaid/sync', { method: 'POST' });
+    if (res && res.success === false) {
+      showSyncError(res.message || 'Sync failed');
+    } else {
+      showSyncComplete();
+    }
+  } catch (err) {
+    console.error('Daily sync error:', err);
+    showSyncError(err.message || 'Sync failed');
+  } finally {
+    await loadAccounts();
+    await router.handleRoute();
+    isSyncInProgress = false;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initApp);
+

@@ -9,6 +9,7 @@ from app.models import (
     AccountSnapshot,
     Holding,
 )
+from app.plaid_service import encrypt_token
 
 
 def seed_demo_portfolio(db: Session, user: User) -> dict:
@@ -19,6 +20,7 @@ def seed_demo_portfolio(db: Session, user: User) -> dict:
     inst_vanguard = Institution(
         user_id=user.id,
         name="Vanguard",
+        plaid_access_token_encrypted=encrypt_token("access-mock-vanguard"),
         is_manual=False,
         created_at=now - timedelta(days=365 * 5),
         last_sync_at=now
@@ -26,6 +28,7 @@ def seed_demo_portfolio(db: Session, user: User) -> dict:
     inst_fidelity = Institution(
         user_id=user.id,
         name="Fidelity Investments",
+        plaid_access_token_encrypted=encrypt_token("access-mock-fidelity"),
         is_manual=False,
         created_at=now - timedelta(days=365 * 5),
         last_sync_at=now
@@ -33,6 +36,7 @@ def seed_demo_portfolio(db: Session, user: User) -> dict:
     inst_schwab = Institution(
         user_id=user.id,
         name="Charles Schwab",
+        plaid_access_token_encrypted=encrypt_token("access-mock-schwab"),
         is_manual=False,
         created_at=now - timedelta(days=365 * 5),
         last_sync_at=now

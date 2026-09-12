@@ -140,6 +140,16 @@ def init_db():
             snap_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(account_snapshots)")).fetchall()]
             if "net_contribution" not in snap_cols:
                 conn.execute(text("ALTER TABLE account_snapshots ADD COLUMN net_contribution FLOAT DEFAULT 0.0;"))
+
+            # 7. Ensure sync_error column exists on institutions and accounts
+            inst_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(institutions)")).fetchall()]
+            if "sync_error" not in inst_cols:
+                conn.execute(text("ALTER TABLE institutions ADD COLUMN sync_error TEXT;"))
+
+            acc_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(accounts)")).fetchall()]
+            if "sync_error" not in acc_cols:
+                conn.execute(text("ALTER TABLE accounts ADD COLUMN sync_error TEXT;"))
         except Exception as e:
             print(f"Schema normalization note: {e}")
+
 

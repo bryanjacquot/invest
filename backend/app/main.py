@@ -155,6 +155,9 @@ def list_accounts(user: User = Depends(get_current_user), db: Session = Depends(
         inst_name = acc.institution.name if acc.institution else "Manual"
         linked_name = acc.linked_asset.name if acc.linked_asset else None
 
+        last_synced = acc.institution.last_sync_at if acc.institution else None
+        sync_err = acc.sync_error or (acc.institution.sync_error if acc.institution else None)
+
         results.append(AccountOut(
             id=acc.id,
             institution_id=acc.institution_id,
@@ -175,7 +178,9 @@ def list_accounts(user: User = Depends(get_current_user), db: Session = Depends(
             target_annual_return_rate=target_rate,
             manual_detail=acc.manual_detail,
             created_at=acc.created_at,
-            last_updated=last_up
+            last_updated=last_up,
+            last_synced_at=last_synced,
+            sync_error=sync_err
         ))
     return results
 
@@ -208,7 +213,9 @@ def create_manual_account(
         target_annual_return_rate=acc.target_config.target_annual_return_rate if acc.target_config else 5.0,
         manual_detail=acc.manual_detail,
         created_at=acc.created_at,
-        last_updated=acc.created_at
+        last_updated=acc.created_at,
+        last_synced_at=acc.institution.last_sync_at if acc.institution else None,
+        sync_error=acc.sync_error or (acc.institution.sync_error if acc.institution else None)
     )
 
 
@@ -245,7 +252,9 @@ def update_account(
         target_annual_return_rate=acc.target_config.target_annual_return_rate if acc.target_config else 7.0,
         manual_detail=acc.manual_detail,
         created_at=acc.created_at,
-        last_updated=last_snap.snapshot_timestamp if last_snap else acc.created_at
+        last_updated=last_snap.snapshot_timestamp if last_snap else acc.created_at,
+        last_synced_at=acc.institution.last_sync_at if acc.institution else None,
+        sync_error=acc.sync_error or (acc.institution.sync_error if acc.institution else None)
     )
 
 
@@ -366,8 +375,10 @@ def exchange_public_token(
 
 @app.post("/api/plaid/sync", response_model=SyncResponse)
 def trigger_sync(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Trigger on-demand sync for all user institutions."""
-    institutions = db.query(Institution).filter(Institution.user_id == user.id).all()
+    institutions = db.query(Institution).filter(
+        Institution.user_id == user.id,
+        Institution.is_manual == False
+    ).all()
     if not institutions:
         return SyncResponse(
             success=True,
@@ -382,21 +393,45 @@ def trigger_sync(user: User = Depends(get_current_user), db: Session = Depends(g
     total_accs = 0
     total_snaps = 0
     total_holds = 0
+    synced_inst_count = 0
+    errors = []
 
     for inst in institutions:
-        stats = plaid_service.sync_institution(db, user, inst)
-        total_accs += stats.get("synced_accounts", 0)
-        total_snaps += stats.get("created_snapshots", 0)
-        total_holds += stats.get("synced_holdings", 0)
+        try:
+            stats = plaid_service.sync_institution(db, user, inst)
+            inst.sync_error = None
+            for acc in inst.accounts:
+                acc.sync_error = None
+            db.commit()
+            synced_inst_count += 1
+            total_accs += stats.get("synced_accounts", 0)
+            total_snaps += stats.get("created_snapshots", 0)
+            total_holds += stats.get("synced_holdings", 0)
+        except Exception as e:
+            err_msg = str(e)
+            inst.sync_error = err_msg
+            for acc in inst.accounts:
+                acc.sync_error = err_msg
+            db.commit()
+            errors.append(f"{inst.name}: {err_msg}")
+
+    success = len(errors) == 0
+    if len(errors) > 0 and synced_inst_count > 0:
+        message = f"Synchronized {synced_inst_count} institution(s) with {len(errors)} error(s)."
+    elif len(errors) > 0:
+        message = f"Sync failed: {'; '.join(errors)}"
+    else:
+        message = "On-demand synchronization complete."
 
     return SyncResponse(
-        success=True,
-        message="On-demand synchronization complete.",
-        synced_institutions_count=len(institutions),
+        success=success,
+        message=message,
+        synced_institutions_count=synced_inst_count,
         synced_accounts_count=total_accs,
         created_snapshots_count=total_snaps,
         synced_holdings_count=total_holds,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow(),
+        errors=errors if errors else None
     )
 
 

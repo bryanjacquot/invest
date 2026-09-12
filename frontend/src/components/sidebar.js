@@ -152,7 +152,7 @@ export function renderSidebarAccountsList() {
     const isLiability = a.account_class === 'liability';
 
     return `
-      <div class="sidebar-account-item" data-account-id="${a.id}">
+      <div class="sidebar-account-item" data-account-id="${a.id}" data-source="${a.source_type}">
         <div class="account-item-left">
           <div class="account-item-name" title="${escapeHtml(a.name)}">${escapeHtml(a.name)}</div>
         </div>

@@ -172,6 +172,8 @@ class AccountOut(BaseModel):
     manual_detail: Optional[ManualDetailOut] = None
     created_at: datetime
     last_updated: Optional[datetime] = None
+    last_synced_at: Optional[datetime] = None
+    sync_error: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -286,3 +288,4 @@ class SyncResponse(BaseModel):
     created_snapshots_count: int
     synced_holdings_count: int
     timestamp: datetime
+    errors: Optional[List[str]] = None
