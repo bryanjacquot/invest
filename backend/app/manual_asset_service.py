@@ -227,6 +227,12 @@ class ManualAssetService:
         if not account:
             raise HTTPException(status_code=404, detail="Account not found")
 
+        if account.source_type != "manual":
+            raise HTTPException(
+                status_code=400,
+                detail="Valuation updates can only be logged for manually added accounts"
+            )
+
         timestamp = data.date or datetime.utcnow()
         snapshot = AccountSnapshot(
             account_id=account.id,

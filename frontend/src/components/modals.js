@@ -392,6 +392,8 @@ export function openValuationModal(accountId, currentValue, title = 'Valuation U
   document.getElementById('valuation-account-id').value = accountId;
   document.getElementById('valuation-amount').value = currentValue || '';
   document.getElementById('valuation-date').value = new Date().toISOString().split('T')[0];
+  const noteEl = document.getElementById('valuation-note');
+  if (noteEl) noteEl.value = '';
 
   modal.classList.remove('hidden');
 }
@@ -405,12 +407,12 @@ function setupValuationModal() {
     const note = document.getElementById('valuation-note')?.value.trim() || null;
 
     try {
-      await apiFetch(`/accounts/${accId}/valuation`, {
+      await apiFetch('/accounts/valuations', {
         method: 'POST',
         body: JSON.stringify({
           account_id: accId,
-          balance: amount,
-          date: date || undefined,
+          new_balance: amount,
+          date: date ? new Date(date + 'T12:00:00').toISOString() : undefined,
           note
         })
       });

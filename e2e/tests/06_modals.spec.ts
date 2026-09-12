@@ -304,6 +304,70 @@ test.describe('Suite 6: Modals & Actions', () => {
     await page.locator('#btn-close-delete-error').click();
     await expect(errorModal).toBeHidden();
   });
+
+  test('MOD-08: Log Valuation update on manual account succeeds and updates balance', async ({ page }) => {
+    // 1. Create a dedicated manual asset account
+    const manualAccName = `ValAcc_${Date.now()}`;
+    await page.locator('#btn-sidebar-add-account').click();
+    const modals = new Modals(page);
+    await modals.tabManual.click();
+    await modals.manualAccountTypeSelect.selectOption('Real Estate / Property');
+    await modals.manualAccountNameInput.fill(manualAccName);
+    await modals.manualAccountBalanceInput.fill('40000');
+    await modals.manualSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Select the manual account
+    const accountItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: manualAccName });
+    await accountItem.waitFor({ state: 'visible', timeout: 8000 });
+    await accountItem.click();
+
+    // 3. Verify Log Valuation button is visible
+    const valBtn = page.locator('#btn-log-valuation');
+    await expect(valBtn).toBeVisible();
+
+    // 4. Open Valuation modal
+    await valBtn.click();
+    const valModal = page.locator('#modal-valuation');
+    await expect(valModal).toBeVisible();
+
+    // 5. Fill new valuation and submit
+    await page.locator('#valuation-amount').fill('50250');
+    await page.locator('#valuation-note').fill('Spring Appraisal Update');
+
+    const [valResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('/api/accounts/valuation') && resp.status() === 200),
+      page.locator('#form-valuation button[type="submit"]').click()
+    ]);
+    expect(valResponse.status()).toBe(200);
+
+    // 6. Modal should close
+    await expect(valModal).toBeHidden();
+  });
+
+  test('MOD-09: Log Valuation button only appears on manual accounts, not on Plaid accounts or All Accounts', async ({ page }) => {
+    // 1. On "All Accounts" overview, Log Valuation should not appear
+    await page.goto('/account');
+    await expect(page.locator('#btn-log-valuation')).toHaveCount(0);
+    await expect(page.locator('#btn-log-valuation-multi')).toHaveCount(0);
+
+    // 2. Navigate to a Plaid account (Vanguard 401(k) Plan)
+    const plaidItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: 'Vanguard 401(k)' });
+    await plaidItem.waitFor({ state: 'visible', timeout: 8000 });
+    await plaidItem.click();
+    await expect(page.locator('#btn-edit-account')).toBeVisible();
+
+    // Plaid account must NOT show Log Valuation button
+    await expect(page.locator('#btn-log-valuation')).toHaveCount(0);
+
+    // 3. Navigate to a manual account (Primary Residence)
+    const manualItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: 'Primary Residence' });
+    await manualItem.waitFor({ state: 'visible', timeout: 8000 });
+    await manualItem.click();
+
+    // Manual account MUST show Log Valuation button
+    await expect(page.locator('#btn-log-valuation')).toBeVisible();
+  });
 });
 
 

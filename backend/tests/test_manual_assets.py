@@ -113,6 +113,38 @@ def test_log_valuation_invalid_account(client, auth_headers):
     assert res.status_code == 404
 
 
+def test_log_valuation_plaid_account_rejected(client, auth_headers, db_session, test_user):
+    from app.models import Account, Institution
+    # Insert a Plaid account directly
+    inst = Institution(
+        user_id=test_user.id,
+        name="Chase Plaid",
+        is_manual=False
+    )
+    db_session.add(inst)
+    db_session.commit()
+
+    plaid_acc = Account(
+        user_id=test_user.id,
+        institution_id=inst.id,
+        source_type="plaid",
+        account_class="asset",
+        name="Chase Plaid Checking",
+        type="checking",
+        category_group="Emergency Savings"
+    )
+    db_session.add(plaid_acc)
+    db_session.commit()
+
+    # Attempt to log valuation for Plaid account
+    res = client.post("/api/accounts/valuations", headers=auth_headers, json={
+        "account_id": plaid_acc.id,
+        "new_balance": 25000.0
+    })
+    assert res.status_code == 400
+    assert "Valuation updates can only be logged for manually added accounts" in res.json()["detail"]
+
+
 def test_bidirectional_account_linking(client, auth_headers):
     # 1. Create a Debt Account first
     res_debt = client.post("/api/accounts/manual", headers=auth_headers, json={

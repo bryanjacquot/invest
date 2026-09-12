@@ -154,7 +154,7 @@ invest/
 2. **`02_sidebar_navigation.spec.ts`:** Default `/account` landing, brand logo routing, flat account selection highlights, All Accounts toggle.
 3. **`04_account_performance.spec.ts`:** $ vs. % metric toggles, horizon switching (`1M` to `Lifetime`), and Chart vs. Table toggle.
 4. **`05_account_holdings.spec.ts`:** Holdings subtab, asset allocation donut chart, and live search filtering.
-5. **`06_modals.spec.ts`:** Modal interactions covering Edit Account settings (`MOD-01`), Add Account tabs & manual picker (`MOD-02`), Bidirectional asset-debt linking (`MOD-03`), Debt subtype selectors (`MOD-04`), Plaid environment status (`MOD-05`), Delete Account confirmation & success notification (`MOD-06`), and Delete Account failure handling with API error dialog (`MOD-07`).
+5. **`06_modals.spec.ts`:** Modal interactions covering Edit Account settings (`MOD-01`), Add Account tabs & manual picker (`MOD-02`), Bidirectional asset-debt linking (`MOD-03`), Debt subtype selectors (`MOD-04`), Plaid environment status (`MOD-05`), Delete Account confirmation & success notification (`MOD-06`), Delete Account failure handling with API error dialog (`MOD-07`), Log Valuation updates (`MOD-08`), and Log Valuation button visibility rules on manual vs. Plaid accounts (`MOD-09`).
 
 ### Verification Commands
 ```bash

@@ -104,6 +104,8 @@ invest/
 | **MOD-05** | Plaid environment status & credential security | Switch to Plaid tab in Add Account modal | Displays configuration status based on server environment variables; verifies no client secret inputs exist in DOM |
 | **MOD-06** | Delete Account flow with confirmation & success dialog | Open Edit Account -> Click red "Delete Account" -> Confirm irreversible prompt | Confirmation dialog warns action is irreversible; confirming sends `DELETE /api/accounts/{id}`; closes edit & confirm modals; displays success dialog `"[account] successfully deleted"`; clicking Close triggers sidebar refresh and redirects to `/account` |
 | **MOD-07** | Delete Account failure handling with error dialog | Mock API failure on account deletion -> Confirm deletion | Error modal (`#modal-delete-account-error`) opens; displays server error message; clicking Close dismisses modal without unmounting view |
+| **MOD-08** | Log Valuation update on manual account | Open manual account -> Click "+ Log Valuation / Payment" -> Enter new balance & note -> Submit | Submits `POST /api/accounts/valuations`; modal closes; account balance and charts refresh |
+| **MOD-09** | Log Valuation button visibility rules | Inspect header buttons across All Accounts, Plaid accounts, and manual accounts | Log Valuation button (`#btn-log-valuation`) is only rendered for manual accounts; never rendered on Plaid accounts or All Accounts view |
 
 ---
 

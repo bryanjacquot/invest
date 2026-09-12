@@ -131,15 +131,14 @@ export default {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit Account
                 </button>
-                <button class="btn btn-sm btn-primary" id="btn-log-valuation">
-                  + Log Valuation / Payment
-                </button>
+                ${this.singleAccount.source_type === 'manual' ? `
+                  <button class="btn btn-sm btn-primary" id="btn-log-valuation">
+                    + Log Valuation / Payment
+                  </button>
+                ` : ''}
               ` : `
                 <button class="btn btn-sm btn-secondary" id="btn-add-account-header">
                   + Add Account
-                </button>
-                <button class="btn btn-sm btn-primary" id="btn-log-valuation-multi">
-                  + Log Valuation
                 </button>
               `}
             </div>
@@ -346,20 +345,6 @@ export default {
     // Add Account button (multi-account header)
     document.getElementById('btn-add-account-header')?.addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('invest:open-add-account'));
-    });
-
-    // Log Valuation button (multi-account header)
-    document.getElementById('btn-log-valuation-multi')?.addEventListener('click', () => {
-      const firstAcc = (state.accounts || []).find(a => this.selectedAccountIds.includes(a.id)) || state.accounts[0];
-      if (firstAcc) {
-        window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
-          detail: {
-            accountId: firstAcc.id,
-            currentValue: firstAcc.current_balance,
-            title: firstAcc.account_class === 'liability' ? 'Mortgage / Loan Payment' : 'Valuation Update'
-          }
-        }));
-      }
     });
 
     // Subtab buttons
