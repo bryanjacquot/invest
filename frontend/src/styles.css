@@ -692,45 +692,10 @@ body {
 }
 
 /* =========================================================================
-   Tab Navigation
+   Tab Navigation (Modal & Sub-Navigation)
    ========================================================================= */
 
-.view-tabs {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-glass);
-  padding-bottom: 0.75rem;
-  overflow-x: auto;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-family: var(--font-sans);
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab-btn:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.tab-btn.active {
-  color: var(--primary);
-  background: rgba(59, 130, 246, 0.12);
-  border-bottom: 2px solid var(--primary);
-}
-
+.view-tabs,
 .modal-tabs,
 .sub-nav-tabs {
   display: flex;
@@ -739,8 +704,10 @@ body {
   border-bottom: 1px solid var(--border-glass);
   padding-bottom: 0;
   background: transparent;
+  overflow-x: auto;
 }
 
+.view-tabs .tab-btn,
 .modal-tabs .tab-btn,
 .sub-nav-tabs .tab-btn {
   display: flex;
@@ -760,12 +727,14 @@ body {
   margin-bottom: -1px;
 }
 
+.view-tabs .tab-btn:hover,
 .modal-tabs .tab-btn:hover,
 .sub-nav-tabs .tab-btn:hover {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.04);
 }
 
+.view-tabs .tab-btn.active,
 .modal-tabs .tab-btn.active,
 .sub-nav-tabs .tab-btn.active {
   color: var(--primary);

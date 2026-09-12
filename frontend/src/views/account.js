@@ -148,13 +148,13 @@ export default {
         <!-- 2. Performance & Analytics Body -->
         <div class="performance-view-container" style="margin-top: 1.5rem;">
           <!-- Sub-navigation tabs -->
-          <nav class="view-tabs" id="account-sub-tabs">
-            <button class="tab-btn ${activeSubTab === 'performance' ? 'active' : ''}" data-subtab="performance">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <nav class="view-tabs sub-nav-tabs" id="account-sub-tabs">
+            <button type="button" class="tab-btn ${activeSubTab === 'performance' ? 'active' : ''}" data-subtab="performance">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               <span>Performance & Targets</span>
             </button>
-            <button class="tab-btn ${activeSubTab === 'holdings' ? 'active' : ''}" data-subtab="holdings">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+            <button type="button" class="tab-btn ${activeSubTab === 'holdings' ? 'active' : ''}" data-subtab="holdings">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
               <span>Holdings & Allocation</span>
             </button>
           </nav>
