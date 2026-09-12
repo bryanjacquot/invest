@@ -322,14 +322,17 @@ test.describe('Suite 6: Modals & Actions', () => {
     await accountItem.waitFor({ state: 'visible', timeout: 8000 });
     await accountItem.click();
 
-    // 3. Verify Log Valuation button is visible
-    const valBtn = page.locator('#btn-log-valuation');
+    // 3. Verify Update Balance button is visible on the left side (#account-sync-info) as secondary CTA
+    const valBtn = page.locator('#account-sync-info #btn-log-valuation');
     await expect(valBtn).toBeVisible();
+    await expect(valBtn).toContainText('Update Balance');
+    await expect(valBtn).toHaveClass(/btn-secondary/);
 
-    // 4. Open Valuation modal
+    // 4. Open Update Balance modal
     await valBtn.click();
     const valModal = page.locator('#modal-valuation');
     await expect(valModal).toBeVisible();
+    await expect(page.locator('#valuation-modal-title')).toHaveText('Update Balance');
 
     // 5. Fill new valuation and submit
     await page.locator('#valuation-amount').fill('50250');
@@ -418,6 +421,27 @@ test.describe('Suite 6: Modals & Actions', () => {
     // 8. Verify performance gain remains $0.00 and 0.00%
     await expect(page.locator('#metric-actual-return')).toContainText('+0.00%');
     await expect(page.locator('#metric-actual-gain')).toContainText('$0.00');
+  });
+
+  test('MOD-11: Capture screenshot of manual account page with + Update Balance secondary CTA', async ({ page }) => {
+    const manualAccountRow = page.locator('.sidebar-account-item[data-source="manual"]').first();
+    await expect(manualAccountRow).toBeVisible();
+    await manualAccountRow.click();
+    const valBtn = page.locator('#account-sync-info #btn-log-valuation');
+    await expect(valBtn).toBeVisible();
+    await expect(valBtn).toContainText('Update Balance');
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/manual_account_update_balance_cta.png' });
+  });
+
+  test('MOD-12: Capture screenshot of Update Balance modal', async ({ page }) => {
+    const manualAccountRow = page.locator('.sidebar-account-item[data-source="manual"]').first();
+    await expect(manualAccountRow).toBeVisible();
+    await manualAccountRow.click();
+    const valBtn = page.locator('#account-sync-info #btn-log-valuation');
+    await valBtn.click();
+    await expect(page.locator('#modal-valuation')).toBeVisible();
+    await expect(page.locator('#valuation-modal-title')).toHaveText('Update Balance');
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/update_balance_modal.png' });
   });
 });
 

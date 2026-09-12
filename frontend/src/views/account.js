@@ -139,6 +139,12 @@ export default {
                   <span id="account-last-synced-msg">Last synced: ${this.singleAccount.last_synced_at ? formatDateTime(this.singleAccount.last_synced_at) : 'Never'}</span>
                 `
               ) : ''}
+              ${isSingle && this.singleAccount.source_type === 'manual' ? `
+                <button class="btn btn-sm btn-secondary" id="btn-log-valuation" title="Update balance and record contributions">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                  Update Balance
+                </button>
+              ` : ''}
             </div>
 
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
@@ -147,11 +153,6 @@ export default {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit Account
                 </button>
-                ${this.singleAccount.source_type === 'manual' ? `
-                  <button class="btn btn-sm btn-primary" id="btn-log-valuation">
-                    + Log Valuation / Payment
-                  </button>
-                ` : ''}
               ` : `
                 <button class="btn btn-sm btn-secondary" id="btn-add-account-header">
                   + Add Account
@@ -346,14 +347,15 @@ export default {
       }
     });
 
-    // Log Valuation button (single account)
+    // Update Balance button (single account)
     document.getElementById('btn-log-valuation')?.addEventListener('click', () => {
       if (this.singleAccount) {
         window.dispatchEvent(new CustomEvent('invest:open-valuation-modal', {
           detail: {
             accountId: this.singleAccount.id,
             currentValue: this.singleAccount.current_balance,
-            title: this.singleAccount.account_class === 'liability' ? 'Mortgage / Loan Payment' : 'Valuation Update'
+            title: 'Update Balance',
+            accountClass: this.singleAccount.account_class
           }
         }));
       }

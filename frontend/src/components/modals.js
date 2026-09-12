@@ -20,8 +20,8 @@ export function initModals() {
   window.addEventListener('invest:open-add-account', (e) => openAddAccountModal(e.detail?.tab));
   window.addEventListener('invest:open-edit-account', (e) => openEditAccountModal(e.detail?.accountId));
   window.addEventListener('invest:open-valuation-modal', (e) => {
-    const { accountId, currentValue, title } = e.detail || {};
-    openValuationModal(accountId, currentValue, title);
+    const { accountId, currentValue, title, accountClass } = e.detail || {};
+    openValuationModal(accountId, currentValue, title, accountClass);
   });
   window.addEventListener('invest:open-settings-modal', () => openSettingsModal());
 
@@ -386,7 +386,7 @@ export function populateLinkedAssetDropdowns() {
 // 3. Valuation Modal
 let currentModalPrevVal = 0.0;
 
-export function openValuationModal(accountId, currentValue, title = 'Valuation Update') {
+export function openValuationModal(accountId, currentValue, title = 'Update Balance', accountClass = null) {
   const modal = document.getElementById('modal-valuation');
   if (!modal) return;
 
@@ -400,7 +400,7 @@ export function openValuationModal(accountId, currentValue, title = 'Valuation U
 
   const contribGroup = document.getElementById('valuation-contribution-group');
   if (contribGroup) {
-    const isLiability = title.toLowerCase().includes('mortgage') || title.toLowerCase().includes('loan') || title.toLowerCase().includes('payment');
+    const isLiability = accountClass === 'liability' || title.toLowerCase().includes('mortgage') || title.toLowerCase().includes('loan') || title.toLowerCase().includes('payment');
     contribGroup.style.display = isLiability ? 'none' : 'block';
   }
 
