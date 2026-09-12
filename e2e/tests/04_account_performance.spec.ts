@@ -40,6 +40,21 @@ test.describe('Suite 4: Account Performance & Controls', () => {
     const accPage = new AccountPage(page);
     await expect(accPage.tabPerformance).toHaveText('Performance');
     await expect(accPage.tabHoldings).toHaveText('Holdings');
+  });
+
+  test('ACC-05: Lifetime horizon displays non-zero return and targets for accounts', async ({ page }) => {
+    const accPage = new AccountPage(page);
+    await accPage.selectTimeframe('LIFETIME');
+    await expect(page).toHaveURL(/timeframe=LIFETIME/);
+    await expect(accPage.metricActualReturn).not.toHaveText('+0.00%');
     await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/account_renamed_subtabs.png' });
+
+    // Click on Ally High Yield Savings account
+    const allyItem = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: 'Ally High Yield Savings' });
+    await allyItem.click();
+    await expect(page.locator('#account-view-title')).toHaveText('Ally High Yield Savings');
+    await expect(accPage.metricActualReturn).not.toHaveText('+0.00%');
+    await expect(accPage.metricTargetReturn).not.toHaveText('+0.00%');
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/ally_account_lifetime_performance.png' });
   });
 });

@@ -191,6 +191,8 @@ class AnalyticsEngine:
             start_date = cls.get_timeframe_start_date(tf, first_snap_date)
             perf = cls._compute_interval_performance(target_accounts, snapshots, start_date, effective_end_date, blended_target_rate, tf)
             timeframe_metrics[tf] = perf
+            timeframe_metrics[tf.upper()] = perf
+            timeframe_metrics[tf.capitalize()] = perf
 
         # Generate chart points for active timeframe
         active_start_date = cls.get_timeframe_start_date(active_timeframe, first_snap_date)
@@ -652,7 +654,7 @@ class AnalyticsEngine:
         metrics = {}
         now_str = datetime.utcnow().strftime("%Y-%m-%d")
         for tf in timeframes:
-            metrics[tf] = TimeframePerformance(
+            perf = TimeframePerformance(
                 timeframe=tf,
                 start_date=now_str,
                 end_date=now_str,
@@ -667,6 +669,9 @@ class AnalyticsEngine:
                 variance_pct=0.0,
                 ahead_of_target=True
             )
+            metrics[tf] = perf
+            metrics[tf.upper()] = perf
+            metrics[tf.capitalize()] = perf
         return PerformanceResponse(
             account_filter=account_filter,
             timeframe=timeframe,

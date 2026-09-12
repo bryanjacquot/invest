@@ -189,7 +189,7 @@ export default {
                   <button class="tf-btn ${activeTf === '1Y' ? 'active' : ''}" data-tf="1Y">1Y</button>
                   <button class="tf-btn ${activeTf === '3Y' ? 'active' : ''}" data-tf="3Y">3Y</button>
                   <button class="tf-btn ${activeTf === '5Y' ? 'active' : ''}" data-tf="5Y">5Y</button>
-                  <button class="tf-btn ${activeTf === 'LIFETIME' ? 'active' : ''}" data-tf="LIFETIME">Lifetime</button>
+                  <button class="tf-btn ${(activeTf === 'LIFETIME' || activeTf === 'Lifetime') ? 'active' : ''}" data-tf="LIFETIME">Lifetime</button>
                 </div>
               </div>
 
@@ -470,7 +470,11 @@ export default {
       const filterStr = this.getFilterQueryString();
       const data = await apiFetch(`/analytics/performance?timeframe=${state.activeTimeframe}&account_filter=${filterStr}`);
 
-      const currMetric = data.timeframe_metrics[state.activeTimeframe] || {};
+      const tfKey = state.activeTimeframe || '1Y';
+      const currMetric = data.timeframe_metrics?.[tfKey] ||
+                         data.timeframe_metrics?.[tfKey.toUpperCase()] ||
+                         data.timeframe_metrics?.[tfKey.charAt(0).toUpperCase() + tfKey.slice(1).toLowerCase()] ||
+                         {};
       document.querySelectorAll('.current-tf-label').forEach(el => el.textContent = state.activeTimeframe);
 
       const retVal = currMetric.return_pct || 0;
@@ -733,7 +737,10 @@ export default {
 
     const tfList = ['1M', 'YTD', '1Y', '3Y', '5Y', 'LIFETIME'];
     tbody.innerHTML = tfList.map(tf => {
-      const m = timeframeMetrics[tf] || {};
+      const m = timeframeMetrics[tf] ||
+                timeframeMetrics[tf.toUpperCase()] ||
+                timeframeMetrics[tf.charAt(0).toUpperCase() + tf.slice(1).toLowerCase()] ||
+                {};
       const contrib = m.net_contributions || 0;
       const gain = m.capital_gain_loss || 0;
       const ret = m.return_pct || 0;
