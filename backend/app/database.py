@@ -149,6 +149,13 @@ def init_db():
             acc_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(accounts)")).fetchall()]
             if "sync_error" not in acc_cols:
                 conn.execute(text("ALTER TABLE accounts ADD COLUMN sync_error TEXT;"))
+
+            # 8. Ensure origination_date and institution_name columns exist on manual_account_details
+            mad_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(manual_account_details)")).fetchall()]
+            if "origination_date" not in mad_cols:
+                conn.execute(text("ALTER TABLE manual_account_details ADD COLUMN origination_date DATE;"))
+            if "institution_name" not in mad_cols:
+                conn.execute(text("ALTER TABLE manual_account_details ADD COLUMN institution_name VARCHAR(150);"))
         except Exception as e:
             print(f"Schema normalization note: {e}")
 

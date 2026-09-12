@@ -182,25 +182,25 @@ export function getAddAccountDialogHtml() {
               <p class="subtext">Track mortgages, personal loans, or lines of credit</p>
             </div>
 
-            <div class="grid-2col">
+            <div class="modal-grid-2col">
               <div class="form-group">
                 <label for="debt-account-name">Account Name</label>
                 <input type="text" id="debt-account-name" class="form-input" placeholder="e.g. 30-Year Mortgage, Auto Loan, Student Loan" required>
               </div>
 
               <div class="form-group">
+                <label for="debt-account-institution">Institution</label>
+                <input type="text" id="debt-account-institution" class="form-input" placeholder="e.g. Rocket Mortgage, Wells Fargo, Chase">
+              </div>
+            </div>
+
+            <div class="modal-grid-2col">
+              <div class="form-group">
                 <label for="debt-account-subtype">Debt Subtype</label>
                 <select id="debt-account-subtype" class="form-input" required>
                   <option value="Mortgage" selected>Mortgage</option>
                   <option value="Other">Other</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="grid-2col">
-              <div class="form-group">
-                <label for="debt-account-balance">Current Balance ($)</label>
-                <input type="number" step="0.01" id="debt-account-balance" class="form-input" placeholder="0.00" required>
               </div>
 
               <div class="form-group">
@@ -211,12 +211,31 @@ export function getAddAccountDialogHtml() {
               </div>
             </div>
 
-            <div class="grid-2col">
+            <div class="modal-grid-2col">
+              <div class="form-group">
+                <label for="debt-account-original-amount">Original Loan Amount ($)</label>
+                <input type="number" step="0.01" id="debt-account-original-amount" class="form-input" placeholder="e.g. 450000.00">
+              </div>
+
+              <div class="form-group">
+                <label for="debt-account-balance">Current Balance ($)</label>
+                <input type="number" step="0.01" id="debt-account-balance" class="form-input" placeholder="0.00" required>
+              </div>
+            </div>
+
+            <div class="modal-grid-2col">
+              <div class="form-group">
+                <label for="debt-account-origination-date">Loan Origination Date</label>
+                <input type="date" id="debt-account-origination-date" class="form-input">
+              </div>
+
               <div class="form-group">
                 <label for="debt-account-interest">Interest Rate (%)</label>
                 <input type="number" step="0.01" id="debt-account-interest" class="form-input" placeholder="e.g. 5.50">
               </div>
+            </div>
 
+            <div class="modal-grid-2col">
               <div class="form-group">
                 <label for="debt-account-payment">Monthly Payment ($)</label>
                 <input type="number" step="0.01" id="debt-account-payment" class="form-input" placeholder="e.g. 1500.00">
@@ -344,8 +363,11 @@ export function setupAddAccountDialog() {
   document.getElementById('form-add-debt-account')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('debt-account-name')?.value.trim();
+    const institution = document.getElementById('debt-account-institution')?.value.trim() || null;
     const subtype = document.getElementById('debt-account-subtype')?.value || 'Mortgage';
+    const originalAmount = parseFloat(document.getElementById('debt-account-original-amount')?.value) || null;
     const balance = parseFloat(document.getElementById('debt-account-balance')?.value) || 0;
+    const originationDate = document.getElementById('debt-account-origination-date')?.value || null;
     const linkedAssetId = document.getElementById('debt-account-linked-asset')?.value || null;
     const interest = parseFloat(document.getElementById('debt-account-interest')?.value) || null;
     const payment = parseFloat(document.getElementById('debt-account-payment')?.value) || null;
@@ -355,6 +377,7 @@ export function setupAddAccountDialog() {
         method: 'POST',
         body: JSON.stringify({
           name,
+          institution_name: institution,
           type: 'DEBT',
           subtype: subtype,
           category_group: 'Debt',
@@ -363,8 +386,11 @@ export function setupAddAccountDialog() {
           target_annual_return_rate: 0.0,
           linked_asset_id: linkedAssetId,
           manual_detail: {
+            original_loan_amount: originalAmount,
+            origination_date: originationDate,
             interest_rate: interest,
-            monthly_payment: payment
+            monthly_payment: payment,
+            institution_name: institution
           }
         })
       });

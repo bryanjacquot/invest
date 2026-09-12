@@ -72,6 +72,75 @@ def test_update_account(client, auth_headers):
     assert updated["target_annual_return_rate"] == 5.0
 
 
+def test_update_mortgage_payment(client, auth_headers):
+    # 1. Create a mortgage manual account with regular monthly payment
+    res_create = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Main Residence Mortgage",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Mortgage",
+        "category_group": "Debt",
+        "initial_balance": 350000.0,
+        "manual_detail": {
+            "original_loan_amount": 400000.0,
+            "interest_rate": 5.25,
+            "monthly_payment": 2100.0
+        }
+    })
+    assert res_create.status_code == 201
+    mort_id = res_create.json()["id"]
+    assert res_create.json()["manual_detail"]["monthly_payment"] == 2100.0
+
+    # 2. Update payment to reflect extra principal payment (e.g. +$400 -> $2500)
+    res_update = client.put(f"/api/accounts/{mort_id}", headers=auth_headers, json={
+        "monthly_payment": 2500.0
+    })
+    assert res_update.status_code == 200
+    updated = res_update.json()
+    assert updated["manual_detail"]["monthly_payment"] == 2500.0
+
+    # 3. Verify fetched account list reflects updated payment
+    res_get = client.get("/api/accounts", headers=auth_headers)
+    assert res_get.status_code == 200
+    account = next(a for a in res_get.json() if a["id"] == mort_id)
+    assert account["manual_detail"]["monthly_payment"] == 2500.0
+
+
+def test_update_account_institution(client, auth_headers):
+    # 1. Create a mortgage account with initial institution
+    res_create = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "Home Loan",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Mortgage",
+        "category_group": "Debt",
+        "initial_balance": 300000.0,
+        "manual_detail": {
+            "institution_name": "Wells Fargo Home Mortgage",
+            "original_loan_amount": 350000.0,
+            "interest_rate": 6.0
+        }
+    })
+    assert res_create.status_code == 201
+    acc_id = res_create.json()["id"]
+    assert res_create.json()["institution_name"] == "Wells Fargo Home Mortgage"
+
+    # 2. Update institution (mortgage transferred/bought by Chase)
+    res_update = client.put(f"/api/accounts/{acc_id}", headers=auth_headers, json={
+        "institution_name": "Chase Home Lending"
+    })
+    assert res_update.status_code == 200
+    updated = res_update.json()
+    assert updated["institution_name"] == "Chase Home Lending"
+    assert updated["manual_detail"]["institution_name"] == "Chase Home Lending"
+
+    # 3. Verify fetched accounts list reflects updated institution
+    res_get = client.get("/api/accounts", headers=auth_headers)
+    assert res_get.status_code == 200
+    account = next(a for a in res_get.json() if a["id"] == acc_id)
+    assert account["institution_name"] == "Chase Home Lending"
+
+
 def test_update_nonexistent_account(client, auth_headers):
     res = client.put("/api/accounts/fake-id-1234", headers=auth_headers, json={
         "name": "New Name"

@@ -63,10 +63,12 @@ class ManualDetailBase(BaseModel):
     purchase_date: Optional[date] = None
     purchase_price: Optional[float] = None
     original_loan_amount: Optional[float] = None
+    origination_date: Optional[date] = None
     interest_rate: Optional[float] = None
     monthly_payment: Optional[float] = None
     maturity_date: Optional[date] = None
     notes: Optional[str] = None
+    institution_name: Optional[str] = None
 
 
 class ManualDetailOut(ManualDetailBase):
@@ -79,6 +81,7 @@ class ManualDetailOut(ManualDetailBase):
 
 class ManualAccountCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=150)
+    institution_name: Optional[str] = None
     account_class: str = Field("asset", description="'asset' or 'liability'")
     type: str = Field("real_estate", description="'real_estate', 'loan', 'investment', 'depository', 'other'")
     subtype: Optional[str] = Field("property", description="'property', 'mortgage', 'auto_loan', 'vehicle', 'savings', 'brokerage', etc.")
@@ -92,12 +95,14 @@ class ManualAccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     name: Optional[str] = None
+    institution_name: Optional[str] = None
     type: Optional[str] = None
     subtype: Optional[str] = None
     category_group: Optional[str] = None
     is_active: Optional[bool] = None
     linked_asset_id: Optional[str] = None
     target_annual_return_rate: Optional[float] = None
+    monthly_payment: Optional[float] = None
 
 
 class ValuationLogCreate(BaseModel):

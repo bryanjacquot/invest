@@ -90,10 +90,12 @@ class ManualAccountDetail(Base):
     purchase_date = Column(Date, nullable=True)
     purchase_price = Column(Float, nullable=True)
     original_loan_amount = Column(Float, nullable=True)
+    origination_date = Column(Date, nullable=True)
     interest_rate = Column(Float, nullable=True)
     monthly_payment = Column(Float, nullable=True)
     maturity_date = Column(Date, nullable=True)
     notes = Column(Text, nullable=True)
+    institution_name = Column(String(150), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     account = relationship("Account", back_populates="manual_detail")

@@ -15,7 +15,6 @@ export function getEditAccountDialogHtml() {
         <div class="modal-header">
           <div>
             <h2 id="edit-acc-modal-title">Edit Account Settings</h2>
-            <p class="subtext">Configure target return rate and account properties.</p>
           </div>
           <button type="button" class="btn-close modal-close-btn">&times;</button>
         </div>
@@ -23,13 +22,20 @@ export function getEditAccountDialogHtml() {
         <form id="form-edit-account" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
           <input type="hidden" id="edit-acc-id">
 
-          <div class="form-group">
-            <label class="form-label" for="edit-acc-name">Account Name</label>
-            <input type="text" id="edit-acc-name" class="form-input" required>
-          </div>
-
           <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
+              <label class="form-label" for="edit-acc-name">Account Name</label>
+              <input type="text" id="edit-acc-name" class="form-input" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="edit-acc-institution">Institution</label>
+              <input type="text" id="edit-acc-institution" class="form-input" placeholder="e.g. Chase, Fidelity">
+            </div>
+          </div>
+
+          <div class="form-row" id="edit-acc-type-target-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group" id="edit-acc-type-group">
               <label class="form-label" for="edit-acc-type">Account Type</label>
               <select id="edit-acc-type" class="form-input custom-account-select" required>
                 <optgroup label="TAXABLE">
@@ -65,7 +71,7 @@ export function getEditAccountDialogHtml() {
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="edit-acc-target-group">
               <label class="form-label" for="edit-acc-target">Target Rate (% APR)</label>
               <input type="number" id="edit-acc-target" class="form-input" step="0.1" required>
             </div>
@@ -76,6 +82,13 @@ export function getEditAccountDialogHtml() {
             <select id="edit-acc-linked-account" class="form-select form-input">
               <option value="">None (Unlinked / Standalone)</option>
             </select>
+          </div>
+
+          <!-- Monthly Payment for Mortgage / Debt Accounts (editable for extra principal) -->
+          <div class="form-group hidden" id="edit-acc-payment-group">
+            <label class="form-label" for="edit-acc-payment">Monthly Payment ($)</label>
+            <input type="number" id="edit-acc-payment" class="form-input" step="0.01" placeholder="e.g. 1500.00">
+            <p class="subtext" style="font-size: 0.75rem; margin-top: 0.2rem;">Adjust payment amount when applying extra principal.</p>
           </div>
 
           <!-- Account Specifications Box -->
@@ -108,6 +121,7 @@ export function openEditAccountModal(accountId) {
 
   const idInput = document.getElementById('edit-acc-id');
   const nameInput = document.getElementById('edit-acc-name');
+  const institutionInput = document.getElementById('edit-acc-institution');
   const typeSelect = document.getElementById('edit-acc-type');
   const targetInput = document.getElementById('edit-acc-target');
   const specsList = document.getElementById('edit-acc-specs-list');
@@ -116,6 +130,16 @@ export function openEditAccountModal(accountId) {
 
   if (idInput) idInput.value = account.id;
   if (nameInput) nameInput.value = account.name;
+  if (institutionInput) {
+    institutionInput.value = account.institution_name || account.manual_detail?.institution_name || '';
+    if (account.source_type === 'plaid') {
+      institutionInput.setAttribute('disabled', 'disabled');
+      institutionInput.title = 'Institution managed automatically via Plaid';
+    } else {
+      institutionInput.removeAttribute('disabled');
+      institutionInput.removeAttribute('title');
+    }
+  }
   if (targetInput) targetInput.value = account.target_annual_return_rate ?? 7.0;
   if (errPill) errPill.classList.add('hidden');
   if (successPill) successPill.classList.add('hidden');
@@ -129,6 +153,44 @@ export function openEditAccountModal(accountId) {
     } else {
       typeSelect.value = 'Investment';
     }
+  }
+
+  // Check if debt account (liability, DEBT, loan, Debt category, or Mortgage/Other debt type)
+  const isDebt = account.account_class === 'liability' ||
+                 account.type === 'DEBT' ||
+                 account.type === 'loan' ||
+                 account.category_group === 'Debt' ||
+                 (typeSelect?.value && MANUAL_ACCOUNT_TYPES[typeSelect.value]?.type === 'DEBT');
+
+  const targetGroup = document.getElementById('edit-acc-target-group');
+  const typeTargetRow = document.getElementById('edit-acc-type-target-row');
+  if (targetGroup) {
+    targetGroup.classList.toggle('hidden', isDebt);
+  }
+  if (typeTargetRow) {
+    typeTargetRow.style.gridTemplateColumns = isDebt ? '1fr' : '1fr 1fr';
+  }
+  if (targetInput) {
+    if (isDebt) {
+      targetInput.removeAttribute('required');
+      targetInput.value = account.target_annual_return_rate ?? 0.0;
+    } else {
+      targetInput.setAttribute('required', 'required');
+      targetInput.value = account.target_annual_return_rate ?? 7.0;
+    }
+  }
+
+  // Monthly Payment for Mortgage / Debt accounts
+  const isMortgage = (account.subtype?.toLowerCase() === 'mortgage') ||
+                     (account.type === 'DEBT' && (account.subtype === 'Mortgage' || typeSelect?.value === 'Mortgage')) ||
+                     (typeSelect?.value === 'Mortgage');
+  const paymentGroup = document.getElementById('edit-acc-payment-group');
+  const paymentInput = document.getElementById('edit-acc-payment');
+  if (paymentGroup) {
+    paymentGroup.classList.toggle('hidden', !isMortgage);
+  }
+  if (paymentInput) {
+    paymentInput.value = account.manual_detail?.monthly_payment ?? '';
   }
 
   // Populate Linked Account Dropdown in Edit Modal
@@ -163,10 +225,6 @@ export function openEditAccountModal(accountId) {
         <span class="overview-stat-val">${escapeHtml(account.subtype || account.type)}</span>
       </div>
       <div class="overview-stat-row">
-        <span class="overview-stat-label">Institution</span>
-        <span class="overview-stat-val">${escapeHtml(account.institution_name || 'Manual')}</span>
-      </div>
-      <div class="overview-stat-row">
         <span class="overview-stat-label">Account Class</span>
         <span class="overview-stat-val">${account.account_class.toUpperCase()}</span>
       </div>
@@ -186,12 +244,6 @@ export function openEditAccountModal(accountId) {
           <span class="overview-stat-val">${account.manual_detail.interest_rate}%</span>
         </div>
       ` : ''}
-      ${account.manual_detail?.monthly_payment ? `
-        <div class="overview-stat-row">
-          <span class="overview-stat-label">Monthly Payment</span>
-          <span class="overview-stat-val">${formatCurrency(account.manual_detail.monthly_payment)}</span>
-        </div>
-      ` : ''}
     `;
   }
 
@@ -202,9 +254,34 @@ export function setupEditAccountDialog() {
   const typeSelect = document.getElementById('edit-acc-type');
   const targetInput = document.getElementById('edit-acc-target');
   typeSelect?.addEventListener('change', () => {
-    const cfg = MANUAL_ACCOUNT_TYPES[typeSelect.value];
-    if (cfg && targetInput && cfg.defaultTarget !== undefined) {
-      targetInput.value = cfg.defaultTarget;
+    const selectedKey = typeSelect.value;
+    const cfg = MANUAL_ACCOUNT_TYPES[selectedKey];
+    const isDebt = cfg?.type === 'DEBT';
+    const isMortgage = selectedKey === 'Mortgage';
+
+    const targetGroup = document.getElementById('edit-acc-target-group');
+    const typeTargetRow = document.getElementById('edit-acc-type-target-row');
+    if (targetGroup) {
+      targetGroup.classList.toggle('hidden', isDebt);
+    }
+    if (typeTargetRow) {
+      typeTargetRow.style.gridTemplateColumns = isDebt ? '1fr' : '1fr 1fr';
+    }
+    if (targetInput) {
+      if (isDebt) {
+        targetInput.removeAttribute('required');
+        targetInput.value = 0.0;
+      } else {
+        targetInput.setAttribute('required', 'required');
+        if (cfg && cfg.defaultTarget !== undefined) {
+          targetInput.value = cfg.defaultTarget;
+        }
+      }
+    }
+
+    const paymentGroup = document.getElementById('edit-acc-payment-group');
+    if (paymentGroup) {
+      paymentGroup.classList.toggle('hidden', !isMortgage);
     }
   });
 
@@ -212,10 +289,16 @@ export function setupEditAccountDialog() {
     e.preventDefault();
     const accountId = document.getElementById('edit-acc-id').value;
     const name = document.getElementById('edit-acc-name').value.trim();
+    const institutionInput = document.getElementById('edit-acc-institution');
+    const institutionName = institutionInput ? institutionInput.value.trim() : undefined;
     const selectedTypeKey = document.getElementById('edit-acc-type')?.value;
     const typeConfig = MANUAL_ACCOUNT_TYPES[selectedTypeKey];
-    const targetRate = parseFloat(document.getElementById('edit-acc-target').value);
+    const targetGroup = document.getElementById('edit-acc-target-group');
+    const isTargetHidden = targetGroup?.classList.contains('hidden');
+    const targetRate = isTargetHidden ? 0.0 : (parseFloat(targetInput?.value) || 0.0);
     const linkedAssetId = document.getElementById('edit-acc-linked-account')?.value ?? undefined;
+    const paymentGroup = document.getElementById('edit-acc-payment-group');
+    const paymentInput = document.getElementById('edit-acc-payment');
 
     const errPill = document.getElementById('edit-acc-error');
     const successPill = document.getElementById('edit-acc-success');
@@ -227,6 +310,9 @@ export function setupEditAccountDialog() {
         name,
         target_annual_return_rate: targetRate
       };
+      if (institutionName !== undefined) {
+        payload.institution_name = institutionName;
+      }
       if (typeConfig) {
         payload.type = typeConfig.type;
         payload.subtype = typeConfig.subtype;
@@ -234,6 +320,10 @@ export function setupEditAccountDialog() {
       }
       if (linkedAssetId !== undefined) {
         payload.linked_asset_id = linkedAssetId;
+      }
+      if (paymentGroup && !paymentGroup.classList.contains('hidden') && paymentInput) {
+        const pVal = paymentInput.value.trim();
+        payload.monthly_payment = pVal === '' ? null : parseFloat(pVal);
       }
 
       await apiFetch(`/accounts/${accountId}`, {

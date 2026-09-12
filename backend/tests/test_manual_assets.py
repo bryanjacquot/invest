@@ -300,3 +300,32 @@ def test_log_valuation_with_contribution(client, auth_headers):
     assert data["net_contribution"] == 1500.0
 
 
+def test_create_manual_debt_account_with_extended_fields(client, auth_headers):
+    res = client.post("/api/accounts/manual", headers=auth_headers, json={
+        "name": "First National Mortgage",
+        "institution_name": "First National Bank",
+        "account_class": "liability",
+        "type": "DEBT",
+        "subtype": "Mortgage",
+        "category_group": "Debt",
+        "initial_balance": 380000.0,
+        "manual_detail": {
+            "origination_date": "2023-08-15",
+            "original_loan_amount": 420000.0,
+            "interest_rate": 6.125,
+            "monthly_payment": 2550.0,
+            "institution_name": "First National Bank"
+        }
+    })
+    assert res.status_code == 201
+    data = res.json()
+    assert data["name"] == "First National Mortgage"
+    assert data["current_balance"] == 380000.0
+    assert data["institution_name"] == "First National Bank"
+    assert data["manual_detail"]["origination_date"] == "2023-08-15"
+    assert data["manual_detail"]["original_loan_amount"] == 420000.0
+    assert data["manual_detail"]["interest_rate"] == 6.125
+    assert data["manual_detail"]["institution_name"] == "First National Bank"
+
+
+

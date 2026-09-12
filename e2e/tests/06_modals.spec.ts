@@ -95,7 +95,10 @@ test.describe('Suite 6: Modals & Actions', () => {
     await modals.tabDebt.click();
     const testDebtName = `Auto Loan ${Date.now()}`;
     await modals.debtAccountNameInput.fill(testDebtName);
+    await modals.debtAccountInstitutionInput.fill('Ally Auto');
+    await modals.debtAccountOriginalAmountInput.fill('30000');
     await modals.debtAccountBalanceInput.fill('25000');
+    await modals.debtAccountOriginationDateInput.fill('2024-01-15');
     await modals.debtAccountInterestInput.fill('4.5');
     await modals.debtAccountPaymentInput.fill('500');
     await modals.debtSubmitBtn.click();
@@ -442,6 +445,88 @@ test.describe('Suite 6: Modals & Actions', () => {
     await expect(page.locator('#modal-valuation')).toBeVisible();
     await expect(page.locator('#valuation-modal-title')).toHaveText('Update Balance');
     await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/update_balance_modal.png' });
+  });
+
+  test('MOD-13: Capture screenshot of Add Debt Account modal', async ({ page }) => {
+    const modals = new Modals(page);
+    await page.locator('#btn-sidebar-add-account').click();
+    await modals.tabDebt.click();
+    await expect(modals.debtAccountNameInput).toBeVisible();
+    await expect(modals.debtAccountInstitutionInput).toBeVisible();
+    await expect(modals.debtAccountOriginalAmountInput).toBeVisible();
+    await expect(modals.debtAccountBalanceInput).toBeVisible();
+    await expect(modals.debtAccountOriginationDateInput).toBeVisible();
+    await expect(modals.debtAccountInterestInput).toBeVisible();
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/add_account_debt_modal.png' });
+  });
+
+  test('MOD-14: Edit Account dialog on mortgage account allows payment to be edited for extra principal', async ({ page }) => {
+    const modals = new Modals(page);
+    const testMortgageName = `Mortgage ${Date.now()}`;
+
+    // 1. Create a Mortgage account
+    await page.locator('#btn-sidebar-add-account').click();
+    await modals.tabDebt.click();
+    await modals.debtAccountNameInput.fill(testMortgageName);
+    await modals.debtAccountInstitutionInput.fill('Fidelity Mortgage');
+    await modals.debtAccountOriginalAmountInput.fill('400000');
+    await modals.debtAccountBalanceInput.fill('350000');
+    await modals.debtAccountInterestInput.fill('5.25');
+    await modals.debtAccountPaymentInput.fill('2100');
+    await modals.debtSubmitBtn.click();
+    await expect(modals.addAccountModal).toBeHidden();
+
+    // 2. Select the mortgage account in sidebar
+    const mortgageRow = page.locator('#sidebar-accounts-list .sidebar-account-item', { hasText: testMortgageName });
+    await mortgageRow.waitFor({ state: 'visible', timeout: 8000 });
+    await mortgageRow.click();
+
+    // 3. Open Edit Account dialog
+    const editBtn = page.locator('#btn-edit-account');
+    await editBtn.waitFor({ state: 'visible', timeout: 8000 });
+    await editBtn.click();
+
+    await expect(modals.editAccountModal).toBeVisible();
+
+    // 4. Verify Institution input is visible and pre-filled with 'Fidelity Mortgage'
+    await expect(modals.editInstitutionInput).toBeVisible();
+    await expect(modals.editInstitutionInput).toHaveValue('Fidelity Mortgage');
+
+    // Verify Monthly Payment field is visible and pre-filled with 2100
+    await expect(modals.editPaymentGroup).toBeVisible();
+    await expect(modals.editPaymentInput).toHaveValue('2100');
+
+    // Verify Target Rate is removed from Edit debit/debt account screen
+    await expect(modals.editTargetRateGroup).toBeHidden();
+
+    // Verify subtext is removed from Edit Account modal header
+    await expect(modals.editAccountModal.locator('.modal-header .subtext')).toHaveCount(0);
+
+    // Verify specifications list does NOT contain read-only Institution or Monthly Payment rows
+    const specsList = modals.editAccountModal.locator('#edit-acc-specs-list');
+    await expect(specsList).not.toContainText('Monthly Payment');
+    await expect(specsList).not.toContainText('Institution');
+
+    // Capture screenshot of Edit Account modal showing editable institution and payment fields without redundant rows
+    await page.screenshot({ path: '/Users/bryanjacquot/.gemini/antigravity-ide/brain/2cc0767f-06a1-4496-b069-48b08501c86b/edit_mortgage_payment_modal.png' });
+
+    // 5. Edit institution (mortgage transferred to Chase) and payment (extra principal: $2100 -> $2600)
+    await modals.editInstitutionInput.fill('Chase Home Lending');
+    await modals.editPaymentInput.fill('2600');
+    await modals.editSubmitBtn.click();
+    await expect(modals.editAccountModal).toBeHidden({ timeout: 5000 });
+
+    // 6. Re-open Edit modal to confirm persistence
+    await editBtn.click();
+    await expect(modals.editAccountModal).toBeVisible();
+    await expect(modals.editInstitutionInput).toHaveValue('Chase Home Lending');
+    await expect(modals.editPaymentInput).toHaveValue('2600');
+    await expect(specsList).not.toContainText('Monthly Payment');
+    await expect(specsList).not.toContainText('Institution');
+
+    // Close modal
+    await modals.editAccountModal.locator('.modal-close-btn').first().click();
+    await expect(modals.editAccountModal).toBeHidden();
   });
 });
 

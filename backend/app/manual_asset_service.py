@@ -50,8 +50,26 @@ class ManualAssetService:
         user: User,
         data: ManualAccountCreate
     ) -> Account:
-        """Create a new manual asset or liability account with bidirectional linking."""
-        institution = cls.get_or_create_manual_institution(db, user)
+        # Determine institution
+        inst_name = (data.institution_name or (data.manual_detail.institution_name if data.manual_detail else None) or "").strip()
+        if inst_name:
+            institution = db.query(Institution).filter(
+                Institution.user_id == user.id,
+                Institution.name == inst_name,
+                Institution.is_manual == True
+            ).first()
+            if not institution:
+                institution = Institution(
+                    user_id=user.id,
+                    name=inst_name,
+                    is_manual=True,
+                    created_at=datetime.utcnow(),
+                    last_sync_at=datetime.utcnow()
+                )
+                db.add(institution)
+                db.flush()
+        else:
+            institution = cls.get_or_create_manual_institution(db, user)
 
         # Validate linked account if specified
         linked = None
@@ -103,10 +121,12 @@ class ManualAssetService:
                 purchase_date=data.manual_detail.purchase_date,
                 purchase_price=data.manual_detail.purchase_price,
                 original_loan_amount=data.manual_detail.original_loan_amount,
+                origination_date=data.manual_detail.origination_date,
                 interest_rate=data.manual_detail.interest_rate,
                 monthly_payment=data.manual_detail.monthly_payment,
                 maturity_date=data.manual_detail.maturity_date,
-                notes=data.manual_detail.notes
+                notes=data.manual_detail.notes,
+                institution_name=inst_name if inst_name else None
             )
             db.add(detail)
 
@@ -208,6 +228,48 @@ class ManualAssetService:
                     target_annual_return_rate=data.target_annual_return_rate
                 )
                 db.add(target)
+
+        if "monthly_payment" in data.model_fields_set:
+            if account.manual_detail:
+                account.manual_detail.monthly_payment = data.monthly_payment
+            elif data.monthly_payment is not None:
+                detail = ManualAccountDetail(
+                    account_id=account.id,
+                    monthly_payment=data.monthly_payment
+                )
+                db.add(detail)
+
+        if "institution_name" in data.model_fields_set:
+            new_inst_name = (data.institution_name or "").strip()
+            if new_inst_name:
+                institution = db.query(Institution).filter(
+                    Institution.user_id == user.id,
+                    Institution.name == new_inst_name,
+                    Institution.is_manual == True
+                ).first()
+                if not institution:
+                    institution = Institution(
+                        user_id=user.id,
+                        name=new_inst_name,
+                        is_manual=True,
+                        created_at=datetime.utcnow(),
+                        last_sync_at=datetime.utcnow()
+                    )
+                    db.add(institution)
+                    db.flush()
+                account.institution_id = institution.id
+            else:
+                default_inst = ManualAssetService.get_or_create_manual_institution(db, user)
+                account.institution_id = default_inst.id
+
+            if account.manual_detail:
+                account.manual_detail.institution_name = new_inst_name or None
+            elif new_inst_name:
+                detail = ManualAccountDetail(
+                    account_id=account.id,
+                    institution_name=new_inst_name
+                )
+                db.add(detail)
 
         db.commit()
         db.refresh(account)
