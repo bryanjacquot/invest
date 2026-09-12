@@ -120,10 +120,10 @@ export default {
             </div>
 
             <div style="text-align: right;">
-              <div style="font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase;">Current Balance</div>
-              <div id="account-current-balance-display" style="font-size: 1.75rem; font-weight: 800; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
+              <div id="account-current-balance-display" style="font-size: 1.75rem; font-weight: 800; line-height: 1.2; color: ${totalBal < 0 ? 'var(--accent-red)' : 'var(--accent-green)'};">
                 ${formatCurrency(isSingle ? this.singleAccount.current_balance : totalBal)}
               </div>
+              <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;">Current Balance</div>
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export default {
                     Sync Error: ${escapeHtml(this.singleAccount.sync_error)}
                   </span>
                 ` : `
-                  <span id="account-last-synced-msg">Last synced: <strong style="color: var(--text-main);">${this.singleAccount.last_synced_at ? formatDateTime(this.singleAccount.last_synced_at) : 'Never'}</strong></span>
+                  <span id="account-last-synced-msg">Last synced: ${this.singleAccount.last_synced_at ? formatDateTime(this.singleAccount.last_synced_at) : 'Never'}</span>
                 `
               ) : ''}
             </div>
